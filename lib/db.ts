@@ -30,4 +30,7 @@ function migrate(db: Database.Database) {
   if (!cols.find(c => c.name === 'completed_days')) {
     db.exec('ALTER TABLE habits ADD COLUMN completed_days INTEGER NOT NULL DEFAULT 0')
   }
+  if (!cols.find(c => c.name === 'color')) {
+    db.exec('ALTER TABLE habits ADD COLUMN color TEXT')
+  }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { listCompletions, toggleCompletion } from '@/lib/completions'
+import { findHabit } from '@/lib/habits'
 
 export function GET(request: Request) {
   const { searchParams } = new URL(request.url)
@@ -18,11 +19,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'habit_id and date are required' }, { status: 400 })
   }
 
-  const { created, completion } = toggleCompletion(getDb(), habit_id, date)
+  const db = getDb()
+  const { created, completion } = toggleCompletion(db, habit_id, date)
+  const habit = findHabit(db, habit_id)
 
-  if (!created) {
-    return new NextResponse(null, { status: 204 })
-  }
-
-  return NextResponse.json(completion, { status: 201 })
+  return NextResponse.json({ created, completion: completion ?? null, habit })
 }

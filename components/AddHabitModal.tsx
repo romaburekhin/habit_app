@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createHabit } from '@/lib/api'
+import { HABIT_COLORS } from '@/lib/colors'
 import type { Habit } from '@/lib/types'
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
 export default function AddHabitModal({ onClose, onCreated }: Props) {
   const [name, setName] = useState('')
   const [goal, setGoal] = useState(10)
+  const [color, setColor] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const dialogRef = useRef<HTMLDialogElement>(null)
 
@@ -24,7 +26,7 @@ export default function AddHabitModal({ onClose, onCreated }: Props) {
     if (!name.trim()) return
     setSubmitting(true)
     try {
-      const habit = await createHabit(name, goal)
+      const habit = await createHabit(name, goal, color)
       onCreated(habit)
       onClose()
     } finally {
@@ -49,8 +51,32 @@ export default function AddHabitModal({ onClose, onCreated }: Props) {
             placeholder="e.g. Read 30 min"
             value={name}
             onChange={e => setName(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-900"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
           />
+        </div>
+
+        <div className="space-y-1">
+          <label className="text-xs text-gray-500">Habit color</label>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setColor(null)}
+              className="w-8 h-8 rounded-full transition-all bg-white border border-gray-200 hover:scale-105 flex items-center justify-center"
+            >
+              {color === null && <span className="w-3 h-3 rounded-full bg-gray-300 block" />}
+            </button>
+            {HABIT_COLORS.map(c => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setColor(c)}
+                style={{ backgroundColor: c }}
+                className="w-8 h-8 rounded-full transition-all hover:scale-105 flex items-center justify-center"
+              >
+                {color === c && <span className="w-3 h-3 rounded-full bg-white block" />}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="space-y-1">
@@ -61,7 +87,7 @@ export default function AddHabitModal({ onClose, onCreated }: Props) {
             max={365}
             value={goal}
             onChange={e => setGoal(Number(e.target.value))}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-gray-900"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
           />
         </div>
 

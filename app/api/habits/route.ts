@@ -8,7 +8,8 @@ export function GET() {
 }
 
 export async function POST(request: Request) {
-  const { name, goal } = await request.json()
+  const body = await request.json()
+  const { name, goal } = body
 
   if (!name?.trim()) {
     return NextResponse.json({ error: 'Name is required' }, { status: 400 })
@@ -19,6 +20,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Goal must be a positive number' }, { status: 400 })
   }
 
-  const habit = createHabit(getDb(), name, parsedGoal)
+  const habit = createHabit(getDb(), name, parsedGoal, body.color ?? null)
   return NextResponse.json(habit, { status: 201 })
 }

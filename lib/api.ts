@@ -6,11 +6,11 @@ export async function fetchHabits(): Promise<Habit[]> {
   return res.json()
 }
 
-export async function createHabit(name: string, goal: number): Promise<Habit> {
+export async function createHabit(name: string, goal: number, color?: string | null): Promise<Habit> {
   const res = await fetch('/api/habits', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, goal }),
+    body: JSON.stringify({ name, goal, color: color ?? null }),
   })
   if (!res.ok) throw new Error('Failed to create habit')
   return res.json()
@@ -26,11 +26,11 @@ export async function incrementHabitDays(id: number): Promise<Habit> {
   return res.json()
 }
 
-export async function updateHabit(id: number, name: string, goal: number): Promise<Habit> {
+export async function updateHabit(id: number, name: string, goal: number, color?: string | null): Promise<Habit> {
   const res = await fetch(`/api/habits/${id}`, {
     method: 'PATCH',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name, goal }),
+    body: JSON.stringify({ name, goal, color: color ?? null }),
   })
   if (!res.ok) throw new Error('Failed to update habit')
   return res.json()
@@ -47,13 +47,15 @@ export async function fetchCompletions(from: string, to: string): Promise<Comple
   return res.json()
 }
 
-export async function toggleCompletion(habit_id: number, date: string): Promise<Completion | null> {
+export async function toggleCompletion(
+  habit_id: number,
+  date: string
+): Promise<{ created: boolean; completion: Completion | null; habit: Habit }> {
   const res = await fetch('/api/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ habit_id, date }),
   })
-  if (res.status === 204) return null
   if (!res.ok) throw new Error('Failed to toggle completion')
   return res.json()
 }

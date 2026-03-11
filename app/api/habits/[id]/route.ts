@@ -20,7 +20,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Name is required' }, { status: 400 })
   }
 
-  const habit = updateHabit(getDb(), numId, body.name, Number(body.goal))
+  const habit = updateHabit(getDb(), numId, body.name, Number(body.goal), body.color ?? null)
   if (!habit) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(habit)
 }

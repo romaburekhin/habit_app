@@ -4,6 +4,8 @@ export interface Habit {
   goal: number
   created_at: string
   completed_days: number
+  streak: number
+  color: string | null
 }
 
 export interface Completion {

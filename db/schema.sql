@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS habits (
   name           TEXT    NOT NULL,
   goal           INTEGER NOT NULL DEFAULT 10,
   completed_days INTEGER NOT NULL DEFAULT 0,
+  color          TEXT,
   created_at     TEXT    NOT NULL
 );
 
