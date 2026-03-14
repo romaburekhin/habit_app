@@ -1,5 +1,6 @@
 export interface Habit {
   id: number
+  user_id: string
   name: string
   goal: number
   created_at: string

@@ -9,3 +9,7 @@ export function createTestDb(): Database.Database {
   db.exec(schema)
   return db
 }
+
+export function createTestUser(): string {
+  return '00000000-0000-0000-0000-000000000001'
+}

@@ -1,13 +1,22 @@
 import { NextResponse } from 'next/server'
 import { getDb } from '@/lib/db'
 import { listHabits, createHabit } from '@/lib/habits'
+import { createClient } from '@/lib/supabase/server'
 
-export function GET() {
-  const habits = listHabits(getDb())
-  return NextResponse.json(habits)
+export async function GET() {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  const db = getDb()
+  return NextResponse.json(listHabits(db, session.user.id))
 }
 
 export async function POST(request: Request) {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const body = await request.json()
   const { name, goal } = body
 
@@ -20,6 +29,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Goal must be a positive number' }, { status: 400 })
   }
 
-  const habit = createHabit(getDb(), name, parsedGoal, body.color ?? null)
+  const db = getDb()
+  const habit = createHabit(db, session.user.id, name, parsedGoal, body.color ?? null)
   return NextResponse.json(habit, { status: 201 })
 }

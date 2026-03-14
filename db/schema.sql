@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS habits (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id        TEXT    NOT NULL,
   name           TEXT    NOT NULL,
   goal           INTEGER NOT NULL DEFAULT 10,
   completed_days INTEGER NOT NULL DEFAULT 0,
@@ -14,3 +15,6 @@ CREATE TABLE IF NOT EXISTS completions (
   FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE,
   UNIQUE(habit_id, date)
 );
+
+CREATE INDEX IF NOT EXISTS idx_habits_user_id ON habits(user_id);
+CREATE INDEX IF NOT EXISTS idx_completions_date ON completions(date);

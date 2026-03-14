@@ -1,10 +1,23 @@
 node_modules/
 .next/
 out/
+
+# Database
 habits.sqlite
 habits.sqlite-shm
 habits.sqlite-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Environment
 .env
 .env.local
 .env*.local
+
+# OS
 .DS_Store
+Thumbs.db
+
+# TypeScript
+tsconfig.tsbuildinfo

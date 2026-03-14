@@ -1,9 +1,36 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { updateHabit, fetchCompletions, toggleCompletion } from '@/lib/api'
+import { updateHabit, deleteHabit, fetchCompletions, toggleCompletion } from '@/lib/api'
 import { HABIT_COLORS } from '@/lib/colors'
 import type { Habit } from '@/lib/types'
+
+type GoalMode = 'year' | 'month' | 'calendar' | 'fixed'
+
+function remainingWeeksInYear(): number {
+  const today = new Date()
+  const endOfYear = new Date(today.getFullYear() + 1, 0, 1)
+  return (endOfYear.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 7)
+}
+
+function remainingWeeksInMonth(): number {
+  const today = new Date()
+  const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 1)
+  return (endOfMonth.getTime() - today.getTime()) / (1000 * 60 * 60 * 24 * 7)
+}
+
+function weeksInCalendarYear(): number {
+  const year = new Date().getFullYear()
+  const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
+  return (isLeap ? 366 : 365) / 7
+}
+
+const GOAL_MODES: { id: GoalMode; label: string }[] = [
+  { id: 'year', label: 'This year' },
+  { id: 'month', label: 'This month' },
+  { id: 'calendar', label: 'Full year' },
+  { id: 'fixed', label: 'Fixed' },
+]
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -16,13 +43,17 @@ interface Props {
   onClose: () => void
   onUpdated: (habit: Habit) => void
   onDayToggled: (habit: Habit) => void
+  onDeleted: (id: number) => void
 }
 
-export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled }: Props) {
+export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled, onDeleted }: Props) {
   const [name, setName] = useState(habit.name)
-  const [goal, setGoal] = useState(habit.goal)
   const [color, setColor] = useState<string | null>(habit.color)
+  const [goalMode, setGoalMode] = useState<GoalMode>('fixed')
+  const [daysPerWeek, setDaysPerWeek] = useState('3')
+  const [fixedGoal, setFixedGoal] = useState(String(habit.goal))
   const [submitting, setSubmitting] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const dialogRef = useRef<HTMLDialogElement>(null)
 
   const today = new Date()
@@ -54,15 +85,19 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
     else setViewMonth(m => m + 1)
   }
 
-  async function handleDayClick(date: string) {
-    const { created, habit: updated } = await toggleCompletion(habit.id, date)
+  function handleDayClick(date: string) {
+    const alreadyDone = completedDates.has(date)
+    // Optimistic update — instant UI response
     setCompletedDates(prev => {
       const next = new Set(prev)
-      if (created) next.add(date)
-      else next.delete(date)
+      if (alreadyDone) next.delete(date)
+      else next.add(date)
       return next
     })
-    onDayToggled(updated)
+    // Sync with server in background
+    toggleCompletion(habit.id, date).then(({ habit: updated }) => {
+      onDayToggled(updated)
+    })
   }
 
   // Build calendar grid (Monday-start)
@@ -77,12 +112,37 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
   ]
   while (cells.length % 7 !== 0) cells.push(null)
 
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await deleteHabit(habit.id)
+      onDeleted(habit.id)
+      onClose()
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const computedGoal =
+    goalMode === 'year'
+      ? Math.round(remainingWeeksInYear() * Number(daysPerWeek))
+      : goalMode === 'month'
+      ? Math.round(remainingWeeksInMonth() * Number(daysPerWeek))
+      : goalMode === 'calendar'
+      ? Math.round(weeksInCalendarYear() * Number(daysPerWeek))
+      : Number(fixedGoal)
+
+  const isGoalInvalid =
+    goalMode === 'fixed'
+      ? !fixedGoal || Number(fixedGoal) < 1
+      : Number(daysPerWeek) < 1 || Number(daysPerWeek) > 7 || computedGoal < 1
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) return
+    if (!name.trim() || isGoalInvalid) return
     setSubmitting(true)
     try {
-      const updated = await updateHabit(habit.id, name, goal, color)
+      const updated = await updateHabit(habit.id, name, computedGoal, color)
       onUpdated(updated)
       onClose()
     } finally {
@@ -94,10 +154,20 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
     <dialog
       ref={dialogRef}
       onClose={onClose}
-      className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-black/40 w-full max-w-sm max-h-[90vh] overflow-y-auto"
+      onClick={e => { if (e.target === dialogRef.current) onClose() }}
+      className="fixed inset-0 m-auto rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-black/40 w-[calc(100%-2rem)] max-w-sm max-h-[90dvh] overflow-y-auto"
     >
-      <div className="p-5 space-y-4">
-        <h2 className="text-base font-semibold">{habit.name}</h2>
+      <div className="p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">{habit.name}</h2>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all text-sm focus:outline-none"
+          >
+            ✕
+          </button>
+        </div>
 
         {/* Month navigation */}
         <div className="flex items-center justify-between">
@@ -193,32 +263,77 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
               ))}
             </div>
           </div>
-          <div className="space-y-1">
-            <label className="text-xs text-gray-500">Goal (days)</label>
-            <input
-              type="number"
-              min={1}
-              max={365}
-              value={goal}
-              onChange={e => setGoal(Number(e.target.value))}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
-            />
+          <div className="space-y-2">
+            <label className="text-xs text-gray-500">Goal</label>
+            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+              {GOAL_MODES.map(m => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setGoalMode(m.id)}
+                  className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-all ${
+                    goalMode === m.id
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            {goalMode === 'fixed' ? (
+              <input
+                type="number"
+                min={1}
+                max={3650}
+                value={fixedGoal}
+                onChange={e => setFixedGoal(e.target.value)}
+                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
+              />
+            ) : (
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={7}
+                    value={daysPerWeek}
+                    onChange={e => setDaysPerWeek(e.target.value)}
+                    className="w-20 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
+                  />
+                  <span className="text-sm text-gray-500">days / week</span>
+                </div>
+                <p className="text-xs text-gray-400">
+                  <span className="font-medium text-gray-600">{computedGoal} days</span> need to complete the goal
+                </p>
+              </div>
+            )}
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="flex items-center justify-between pt-2">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-sm rounded-lg text-gray-600 hover:bg-gray-100"
+              onClick={handleDelete}
+              disabled={deleting}
+              className="px-4 py-2.5 text-sm rounded-lg text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors focus:outline-none disabled:opacity-50"
             >
-              Cancel
+              {deleting ? 'Deleting...' : 'Delete'}
             </button>
-            <button
-              type="submit"
-              disabled={!name.trim() || goal < 1 || submitting}
-              className="px-4 py-2 text-sm rounded-lg bg-gray-900 text-white disabled:opacity-50"
-            >
-              {submitting ? 'Saving...' : 'Save'}
-            </button>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2.5 text-sm rounded-lg text-gray-600 hover:bg-gray-100 focus:outline-none"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={!name.trim() || isGoalInvalid || submitting}
+                className="px-4 py-2 text-sm rounded-lg bg-gray-900 text-white disabled:opacity-50"
+              >
+                {submitting ? 'Saving...' : 'Save'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

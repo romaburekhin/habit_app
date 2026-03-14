@@ -6,6 +6,12 @@ export async function fetchHabits(): Promise<Habit[]> {
   return res.json()
 }
 
+export async function fetchInit(): Promise<{ habits: Habit[]; completions: Completion[] }> {
+  const res = await fetch('/api/init')
+  if (!res.ok) throw new Error('Failed to fetch init data')
+  return res.json()
+}
+
 export async function createHabit(name: string, goal: number, color?: string | null): Promise<Habit> {
   const res = await fetch('/api/habits', {
     method: 'POST',

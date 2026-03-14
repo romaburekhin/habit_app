@@ -2,7 +2,7 @@ import Database from 'better-sqlite3'
 import fs from 'fs'
 import path from 'path'
 
-const DB_PATH = path.join(process.cwd(), 'habits.sqlite')
+const DB_PATH = process.env.DATABASE_PATH ?? path.join(process.cwd(), 'habits.sqlite')
 const SCHEMA_PATH = path.join(process.cwd(), 'db', 'schema.sql')
 
 declare global {
@@ -23,14 +23,14 @@ export function getDb(): Database.Database {
 }
 
 function migrate(db: Database.Database) {
-  const cols = db.pragma('table_info(habits)') as Array<{ name: string }>
-  if (!cols.find(c => c.name === 'goal')) {
+  const habitCols = db.pragma('table_info(habits)') as Array<{ name: string }>
+  if (!habitCols.find(c => c.name === 'goal')) {
     db.exec('ALTER TABLE habits ADD COLUMN goal INTEGER NOT NULL DEFAULT 10')
   }
-  if (!cols.find(c => c.name === 'completed_days')) {
+  if (!habitCols.find(c => c.name === 'completed_days')) {
     db.exec('ALTER TABLE habits ADD COLUMN completed_days INTEGER NOT NULL DEFAULT 0')
   }
-  if (!cols.find(c => c.name === 'color')) {
+  if (!habitCols.find(c => c.name === 'color')) {
     db.exec('ALTER TABLE habits ADD COLUMN color TEXT')
   }
 }
