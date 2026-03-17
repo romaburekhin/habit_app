@@ -17,7 +17,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
-  themeColor: '#111827',
+  themeColor: '#ffffff',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -33,10 +33,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-50 text-gray-900">
+      <body className="min-h-screen bg-gray-100 text-gray-900">
         <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
           <div className="max-w-lg mx-auto flex items-center justify-between" style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingBottom: '0.75rem', paddingLeft: 'max(1rem, env(safe-area-inset-left))', paddingRight: 'max(1rem, env(safe-area-inset-right))' }}>
-            <h1 className="text-base sm:text-lg font-semibold tracking-tight">Habit Tracker</h1>
+            <h1 className="text-base sm:text-lg font-semibold tracking-tight text-gray-900">Habit Tracker</h1>
             {user && (
               <div className="flex items-center gap-3">
                 <ProfileButton initials={initials} />

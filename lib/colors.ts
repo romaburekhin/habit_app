@@ -1,5 +1,4 @@
 export const HABIT_COLORS: string[] = [
-  '#9CA3AF', // gray
   '#86EFAC', // green
   '#FDE047', // yellow
   '#F9A8D4', // pink
@@ -7,3 +6,5 @@ export const HABIT_COLORS: string[] = [
   '#FCA5A5', // coral
   '#C4B5FD', // purple
 ]
+
+export const GRAY_COLOR = '#9CA3AF'

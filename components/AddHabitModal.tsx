@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { createHabit } from '@/lib/api'
-import { HABIT_COLORS } from '@/lib/colors'
+import { HABIT_COLORS, GRAY_COLOR } from '@/lib/colors'
 import type { Habit } from '@/lib/types'
 
 type GoalMode = 'year' | 'month' | 'calendar' | 'fixed'
@@ -30,9 +30,11 @@ interface Props {
   onCreated: (habit: Habit) => void
 }
 
+const DEFAULT_COLOR = '#E5E7EB'
+
 export default function AddHabitModal({ onClose, onCreated }: Props) {
   const [name, setName] = useState('')
-  const [color, setColor] = useState<string | null>(null)
+  const [color, setColor] = useState<string | null>(HABIT_COLORS[0])
   const [submitting, setSubmitting] = useState(false)
   const [goalMode, setGoalMode] = useState<GoalMode>('year')
   const [daysPerWeek, setDaysPerWeek] = useState('3')
@@ -72,6 +74,9 @@ export default function AddHabitModal({ onClose, onCreated }: Props) {
     }
   }
 
+  const activeColor = color ?? DEFAULT_COLOR
+  const dialogStyle = { background: `linear-gradient(${activeColor}33, ${activeColor}33), white` }
+
   const MODES: { id: GoalMode; label: string }[] = [
     { id: 'year', label: 'This year' },
     { id: 'month', label: 'This month' },
@@ -84,33 +89,27 @@ export default function AddHabitModal({ onClose, onCreated }: Props) {
       ref={dialogRef}
       onClose={onClose}
       onClick={e => { if (e.target === dialogRef.current) onClose() }}
-      className="fixed inset-0 m-auto rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-black/40 w-[calc(100%-2rem)] max-w-sm max-h-[90dvh] overflow-y-auto"
+      style={dialogStyle}
+      className="fixed inset-0 m-auto rounded-2xl border-0 p-0 shadow-xl backdrop:bg-black/40 w-[calc(100%-2rem)] max-w-sm max-h-[90dvh] overflow-y-auto"
     >
       <form onSubmit={handleSubmit} className="p-5 space-y-4">
-        <h2 className="text-base font-semibold">New habit</h2>
+        <h2 className="text-base font-semibold text-gray-900">New goal</h2>
 
         <div className="space-y-1">
-          <label className="text-xs text-gray-500">Name</label>
+          <label className="text-xs text-gray-400">Name</label>
           <input
             autoFocus
             type="text"
             placeholder="e.g. Read 30 min"
             value={name}
             onChange={e => setName(e.target.value)}
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
+            className="w-full rounded-lg px-3 py-2 text-sm outline-none border border-black/10 bg-white/70 text-gray-900 placeholder-gray-400 focus:border-black/20"
           />
         </div>
 
-        <div className="space-y-1">
-          <label className="text-xs text-gray-500">Habit color</label>
+        <div className="space-y-1.5">
+          <label className="text-xs text-gray-400">Habit color</label>
           <div className="flex gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setColor(null)}
-              className="w-8 h-8 rounded-full transition-all bg-white border border-gray-200 hover:scale-105 flex items-center justify-center"
-            >
-              {color === null && <span className="w-3 h-3 rounded-full bg-gray-300 block" />}
-            </button>
             {HABIT_COLORS.map(c => (
               <button
                 key={c}
@@ -122,13 +121,20 @@ export default function AddHabitModal({ onClose, onCreated }: Props) {
                 {color === c && <span className="w-3 h-3 rounded-full bg-white block" />}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setColor(GRAY_COLOR)}
+              style={{ backgroundColor: GRAY_COLOR }}
+              className="w-8 h-8 rounded-full transition-all hover:scale-105 flex items-center justify-center"
+            >
+              {color === GRAY_COLOR && <span className="w-3 h-3 rounded-full bg-white block" />}
+            </button>
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs text-gray-500">Goal</label>
-          {/* Mode tabs */}
-          <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+          <label className="text-xs text-gray-400">Goal</label>
+          <div className="flex gap-1 bg-black/8 rounded-lg p-1">
             {MODES.map(m => (
               <button
                 key={m.id}
@@ -146,15 +152,23 @@ export default function AddHabitModal({ onClose, onCreated }: Props) {
           </div>
 
           {goalMode === 'fixed' ? (
-            <input
-              type="number"
-              min={1}
-              max={3650}
-              placeholder="e.g. 30"
-              value={fixedGoal}
-              onChange={e => setFixedGoal(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
-            />
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min={1}
+                  max={3650}
+                  placeholder="e.g. 30"
+                  value={fixedGoal}
+                  onChange={e => setFixedGoal(e.target.value)}
+                  className="w-20 rounded-lg px-3 py-2 text-sm outline-none border border-black/10 bg-white/70 text-gray-900 placeholder-gray-400 focus:border-black/20"
+                />
+                <span className="text-sm text-gray-500">days</span>
+              </div>
+              <p className="text-xs text-gray-400">
+                <span className="font-medium text-gray-700">{fixedGoal || '0'} days</span> need to complete the goal
+              </p>
+            </div>
           ) : (
             <div className="space-y-1.5">
               <div className="flex items-center gap-2">
@@ -164,29 +178,30 @@ export default function AddHabitModal({ onClose, onCreated }: Props) {
                   max={7}
                   value={daysPerWeek}
                   onChange={e => setDaysPerWeek(e.target.value)}
-                  className="w-20 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
+                  className="w-20 rounded-lg px-3 py-2 text-sm outline-none border border-black/10 bg-white/70 text-gray-900 placeholder-gray-400 focus:border-black/20"
                 />
-                <span className="text-sm text-gray-500">days / week</span>
+                <span className="text-sm text-gray-500">days per week</span>
               </div>
               <p className="text-xs text-gray-400">
-                <span className="font-medium text-gray-600">{computedGoal} days</span> need to complete the goal
+                <span className="font-medium text-gray-700">{computedGoal} days</span> need to complete the goal
               </p>
             </div>
           )}
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 pt-1">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 text-sm rounded-lg text-gray-600 hover:bg-gray-100 focus:outline-none"
+            className="px-4 py-2.5 text-sm rounded-lg focus:outline-none text-gray-500 hover:bg-black/8"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isDisabled}
-            className="px-4 py-2 text-sm rounded-lg bg-gray-900 text-white disabled:opacity-50"
+            style={{ backgroundColor: activeColor }}
+            className="px-4 py-2 text-sm rounded-lg disabled:opacity-40 text-gray-800 font-medium"
           >
             {submitting ? 'Adding...' : 'Add'}
           </button>

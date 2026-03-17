@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { updateHabit, deleteHabit, fetchCompletions, toggleCompletion } from '@/lib/api'
-import { HABIT_COLORS } from '@/lib/colors'
+import { HABIT_COLORS, GRAY_COLOR } from '@/lib/colors'
 import type { Habit } from '@/lib/types'
 
 type GoalMode = 'year' | 'month' | 'calendar' | 'fixed'
@@ -38,11 +38,14 @@ const MONTH_NAMES = [
 ]
 const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
+// Default neutral gray when no color is selected — modal is always light-themed
+const DEFAULT_COLOR = '#E5E7EB'
+
 interface Props {
   habit: Habit
   onClose: () => void
   onUpdated: (habit: Habit) => void
-  onDayToggled: (habit: Habit) => void
+  onDayToggled: (habit: Habit, date: string, added: boolean) => void
   onDeleted: (id: number) => void
 }
 
@@ -61,6 +64,9 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
   const [viewYear, setViewYear] = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
   const [completedDates, setCompletedDates] = useState<Set<string>>(new Set())
+
+  // Modal is always light-themed; fall back to green when no color selected
+  const activeColor = color ?? DEFAULT_COLOR
 
   useEffect(() => {
     dialogRef.current?.showModal()
@@ -87,20 +93,17 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
 
   function handleDayClick(date: string) {
     const alreadyDone = completedDates.has(date)
-    // Optimistic update — instant UI response
     setCompletedDates(prev => {
       const next = new Set(prev)
       if (alreadyDone) next.delete(date)
       else next.add(date)
       return next
     })
-    // Sync with server in background
     toggleCompletion(habit.id, date).then(({ habit: updated }) => {
-      onDayToggled(updated)
+      onDayToggled(updated, date, !alreadyDone)
     })
   }
 
-  // Build calendar grid (Monday-start)
   const startPad = (new Date(viewYear, viewMonth, 1).getDay() + 6) % 7
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
   const cells: (string | null)[] = [
@@ -150,53 +153,30 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
     }
   }
 
+  // Always light modal — background tinted with activeColor
+  const dialogStyle = { background: `linear-gradient(${activeColor}33, ${activeColor}33), white` }
+
   return (
     <dialog
       ref={dialogRef}
       onClose={onClose}
       onClick={e => { if (e.target === dialogRef.current) onClose() }}
-      className="fixed inset-0 m-auto rounded-xl border border-gray-200 p-0 shadow-xl backdrop:bg-black/40 w-[calc(100%-2rem)] max-w-sm max-h-[90dvh] overflow-y-auto"
+      style={dialogStyle}
+      className="fixed inset-0 m-auto rounded-2xl border-0 p-0 shadow-2xl backdrop:bg-black/40 w-[calc(100%-2rem)] max-w-sm max-h-[90dvh] overflow-y-auto"
     >
       <div className="p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">{habit.name}</h2>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            className="w-9 h-9 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all text-sm focus:outline-none"
-          >
-            ✕
-          </button>
-        </div>
-
         {/* Month navigation */}
         <div className="flex items-center justify-between">
-          <button
-            type="button"
-            onClick={prevMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors text-lg"
-          >
-            ‹
-          </button>
-          <span className="text-sm font-medium text-gray-700">
-            {MONTH_NAMES[viewMonth]} {viewYear}
-          </span>
-          <button
-            type="button"
-            onClick={nextMonth}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors text-lg"
-          >
-            ›
-          </button>
+          <button type="button" onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-black/8 transition-colors text-lg">‹</button>
+          <span className="text-sm font-medium text-gray-800">{MONTH_NAMES[viewMonth]} {viewYear}</span>
+          <button type="button" onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:bg-black/8 transition-colors text-lg">›</button>
         </div>
 
         {/* Calendar */}
         <div>
           <div className="grid grid-cols-7">
             {DAY_HEADERS.map(d => (
-              <div key={d} className="text-center text-[10px] text-gray-400 font-medium py-0.5">
-                {d}
-              </div>
+              <div key={d} className="text-center text-[10px] text-gray-400 font-medium py-0.5">{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7">
@@ -205,20 +185,29 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
               const filled = completedDates.has(date)
               const isToday = date === todayStr
               const isFuture = date > todayStr
+              // Use actual habit color for filled dots; activeColor for today border
+              const dotColor = color ?? '#9CA3AF'
               return (
                 <div key={date} className="flex justify-center py-0.5">
                   <button
                     type="button"
                     onClick={() => !isFuture && handleDayClick(date)}
                     disabled={isFuture}
+                    style={
+                      filled
+                        ? { backgroundColor: dotColor }
+                        : isToday
+                        ? { borderColor: activeColor, borderWidth: 2, borderStyle: 'solid' }
+                        : undefined
+                    }
                     className={`w-7 h-7 rounded-full text-xs font-semibold transition-all ${
                       filled
-                        ? 'bg-emerald-500 text-white shadow-sm'
+                        ? 'text-white shadow-sm'
                         : isToday
-                        ? 'border-2 border-emerald-400 text-gray-800 hover:bg-emerald-50'
+                        ? 'border-2 text-gray-700 hover:bg-black/8'
                         : isFuture
                         ? 'text-gray-300 cursor-default'
-                        : 'text-gray-500 hover:bg-gray-100'
+                        : 'text-gray-600 hover:bg-black/8'
                     }`}
                   >
                     {String(parseInt(date.slice(8))).padStart(2, '0')}
@@ -230,26 +219,19 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
         </div>
 
         {/* Edit form */}
-        <form onSubmit={handleSubmit} className="space-y-3 border-t border-gray-100 pt-3">
+        <form onSubmit={handleSubmit} className="space-y-3 border-t border-black/10 pt-3">
           <div className="space-y-1">
-            <label className="text-xs text-gray-500">Name</label>
+            <label className="text-xs text-gray-400">Name</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
+              className="w-full rounded-lg px-3 py-2 text-sm outline-none border border-black/10 bg-white/70 text-gray-900 placeholder-gray-400 focus:border-black/20"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs text-gray-500">Habit color</label>
+            <label className="text-xs text-gray-400">Habit color</label>
             <div className="flex gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={() => setColor(null)}
-                className="w-8 h-8 rounded-full transition-all bg-white border border-gray-200 hover:scale-105 flex items-center justify-center"
-              >
-                {color === null && <span className="w-3 h-3 rounded-full bg-gray-300 block" />}
-              </button>
               {HABIT_COLORS.map(c => (
                 <button
                   key={c}
@@ -261,20 +243,26 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
                   {color === c && <span className="w-3 h-3 rounded-full bg-white block" />}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setColor(GRAY_COLOR)}
+                style={{ backgroundColor: GRAY_COLOR }}
+                className="w-8 h-8 rounded-full transition-all hover:scale-105 flex items-center justify-center"
+              >
+                {color === GRAY_COLOR && <span className="w-3 h-3 rounded-full bg-white block" />}
+              </button>
             </div>
           </div>
           <div className="space-y-2">
-            <label className="text-xs text-gray-500">Goal</label>
-            <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+            <label className="text-xs text-gray-400">Goal</label>
+            <div className="flex gap-1 bg-black/8 rounded-lg p-1">
               {GOAL_MODES.map(m => (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => setGoalMode(m.id)}
                   className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-all ${
-                    goalMode === m.id
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-500 hover:text-gray-700'
+                    goalMode === m.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
                   {m.label}
@@ -282,14 +270,22 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
               ))}
             </div>
             {goalMode === 'fixed' ? (
-              <input
-                type="number"
-                min={1}
-                max={3650}
-                value={fixedGoal}
-                onChange={e => setFixedGoal(e.target.value)}
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
-              />
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    max={3650}
+                    value={fixedGoal}
+                    onChange={e => setFixedGoal(e.target.value)}
+                    className="w-20 rounded-lg px-3 py-2 text-sm outline-none border border-black/10 bg-white/70 text-gray-900 placeholder-gray-400 focus:border-black/20"
+                  />
+                  <span className="text-sm text-gray-500">days</span>
+                </div>
+                <p className="text-xs text-gray-400">
+                  <span className="font-medium text-gray-700">{fixedGoal || '0'} days</span> need to complete the goal
+                </p>
+              </div>
             ) : (
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
@@ -299,12 +295,12 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
                     max={7}
                     value={daysPerWeek}
                     onChange={e => setDaysPerWeek(e.target.value)}
-                    className="w-20 rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-gray-400"
+                    className="w-20 rounded-lg px-3 py-2 text-sm outline-none border border-black/10 bg-white/70 text-gray-900 placeholder-gray-400 focus:border-black/20"
                   />
-                  <span className="text-sm text-gray-500">days / week</span>
+                  <span className="text-sm text-gray-500">days per week</span>
                 </div>
                 <p className="text-xs text-gray-400">
-                  <span className="font-medium text-gray-600">{computedGoal} days</span> need to complete the goal
+                  <span className="font-medium text-gray-700">{computedGoal} days</span> need to complete the goal
                 </p>
               </div>
             )}
@@ -314,22 +310,19 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
               type="button"
               onClick={handleDelete}
               disabled={deleting}
-              className="px-4 py-2.5 text-sm rounded-lg text-red-400 hover:bg-red-50 hover:text-red-500 transition-colors focus:outline-none disabled:opacity-50"
+              className="px-4 py-2.5 text-sm rounded-lg transition-colors focus:outline-none disabled:opacity-50 text-gray-500 hover:bg-black/8"
             >
               {deleting ? 'Deleting...' : 'Delete'}
             </button>
             <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2.5 text-sm rounded-lg text-gray-600 hover:bg-gray-100 focus:outline-none"
-              >
+              <button type="button" onClick={onClose} className="px-4 py-2.5 text-sm rounded-lg focus:outline-none text-gray-500 hover:bg-black/8">
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!name.trim() || isGoalInvalid || submitting}
-                className="px-4 py-2 text-sm rounded-lg bg-gray-900 text-white disabled:opacity-50"
+                style={{ backgroundColor: activeColor }}
+                className="px-4 py-2 text-sm rounded-lg disabled:opacity-40 text-gray-800 font-medium"
               >
                 {submitting ? 'Saving...' : 'Save'}
               </button>

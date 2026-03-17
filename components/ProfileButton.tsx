@@ -10,9 +10,9 @@ export default function ProfileButton({ initials }: { initials: string }) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center hover:bg-gray-700 transition-colors focus:outline-none"
+        className="w-9 h-9 rounded-full bg-gray-900 text-white text-xs font-semibold transition-all focus:outline-none flex items-center justify-center"
       >
-        <span className="text-[11px] font-semibold text-white">{initials}</span>
+        {initials}
       </button>
       {open && <ProfileModal initials={initials} onClose={() => setOpen(false)} />}
     </>

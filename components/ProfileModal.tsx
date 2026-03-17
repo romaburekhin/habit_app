@@ -29,59 +29,54 @@ export default function ProfileModal({ initials, onClose }: Props) {
       ref={dialogRef}
       onClose={onClose}
       onClick={e => { if (e.target === dialogRef.current) onClose() }}
-      className="fixed inset-0 m-auto rounded-2xl border-0 p-0 shadow-2xl backdrop:bg-black/50 w-[calc(100%-2rem)] max-w-xs overflow-hidden"
+      className="fixed inset-0 m-auto rounded-2xl border-0 p-0 shadow-xl backdrop:bg-black/40 w-[calc(100%-2rem)] max-w-xs bg-white overflow-hidden"
     >
       {/* Header */}
-      <div className="relative bg-gray-900 px-6 py-10 text-center">
+      <div className="relative px-6 pt-8 pb-5 text-center">
         <button
           onClick={onClose}
           aria-label="Close"
-          className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full text-gray-500 hover:text-gray-300 hover:bg-white/10 transition-all text-sm focus:outline-none"
+          className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all text-xs focus:outline-none"
         >
           ✕
         </button>
-        <div className="w-20 h-20 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3">
-          <span className="text-3xl font-bold text-white">{initials || '?'}</span>
+        <div className="w-14 h-14 rounded-full bg-gray-900 flex items-center justify-center mx-auto mb-3">
+          <span className="text-base font-semibold text-white">{initials || '?'}</span>
         </div>
         {stats?.memberSince
-          ? <p className="text-xs text-gray-500 font-medium">Since {stats.memberSince}</p>
-          : <p className="text-xs text-gray-700 font-medium">—</p>
+          ? <p className="text-xs text-gray-400">Member since {stats.memberSince}</p>
+          : <p className="text-xs text-gray-300">—</p>
         }
       </div>
 
-      {/* Stats — top row */}
-      <div className="grid grid-cols-2 bg-white">
-        <div className="px-5 py-5 text-center border-b border-r border-gray-100">
-          <p className="text-3xl font-bold text-blue-500/60 tabular-nums">
-            {stats?.habitsCount ?? <span className="text-gray-300">—</span>}
-          </p>
-          <p className="text-[11px] text-gray-400 mt-1 font-medium uppercase tracking-wide">Goals</p>
-        </div>
-        <div className="px-5 py-5 text-center border-b border-gray-100">
-          <p className="text-3xl font-bold text-emerald-500/60 tabular-nums">
-            {stats?.goalsReached ?? <span className="text-gray-300">—</span>}
-          </p>
-          <p className="text-[11px] text-gray-400 mt-1 font-medium uppercase tracking-wide">Goals reached</p>
-        </div>
+      {/* Divider */}
+      <div className="mx-4 border-t border-gray-100" />
 
-        {/* Bottom row */}
-        <div className="px-5 py-5 text-center border-r border-gray-100">
-          <p className="text-3xl font-bold text-pink-500/60 tabular-nums">
-            {stats?.maxStreak ?? <span className="text-gray-300">—</span>}
+      {/* Stats */}
+      <div className="px-4 pt-4 pb-5 grid grid-cols-2 gap-2">
+        <div className="bg-gray-100 rounded-xl px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-blue-500 tabular-nums">
+            {stats?.habitsCount ?? '—'}
           </p>
-          <p className="text-[11px] text-gray-400 mt-1 font-medium uppercase tracking-wide">Max days in a row</p>
+          <p className="text-[10px] text-gray-400 mt-0.5 font-medium uppercase tracking-wide">Goals</p>
         </div>
-        <div className="px-5 py-5 text-center">
-          <p
-            className="text-sm font-semibold text-gray-900 leading-tight truncate px-1"
-            title={stats?.mostAmbitious ?? undefined}
-          >
-            {stats
-              ? (stats.mostAmbitious ?? <span className="text-gray-300 font-normal text-xs">—</span>)
-              : <span className="text-gray-300">—</span>
-            }
+        <div className="bg-gray-100 rounded-xl px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-emerald-500 tabular-nums">
+            {stats?.goalsReached ?? '—'}
           </p>
-          <p className="text-[11px] text-gray-400 mt-1 font-medium uppercase tracking-wide">Most ambitious goal</p>
+          <p className="text-[10px] text-gray-400 mt-0.5 font-medium uppercase tracking-wide">Reached</p>
+        </div>
+        <div className="bg-gray-100 rounded-xl px-4 py-3 text-center">
+          <p className="text-2xl font-bold text-pink-500 tabular-nums">
+            {stats?.maxStreak ?? '—'}
+          </p>
+          <p className="text-[10px] text-gray-400 mt-0.5 font-medium uppercase tracking-wide">Best streak</p>
+        </div>
+        <div className="bg-gray-100 rounded-xl px-4 py-3 text-center flex flex-col justify-center">
+          <p className="text-sm font-semibold text-gray-800 leading-tight truncate" title={stats?.mostAmbitious ?? undefined}>
+            {stats ? (stats.mostAmbitious ?? <span className="text-gray-300 font-normal text-xs">—</span>) : '—'}
+          </p>
+          <p className="text-[10px] text-gray-400 mt-0.5 font-medium uppercase tracking-wide">Top goal</p>
         </div>
       </div>
     </dialog>
