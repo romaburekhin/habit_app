@@ -10,9 +10,14 @@ const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'S
 // Show Mon, Wed, Fri labels only (indices 0, 2, 4)
 const DAY_LABEL_MAP: Record<number, string> = { 0: 'Mon', 2: 'Wed', 4: 'Fri' }
 
+function toLocalDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function buildWeeks(): (string | null)[][] {
   const today = new Date()
-  const todayStr = today.toISOString().slice(0, 10)
+  today.setHours(0, 0, 0, 0)
+  const todayStr = toLocalDate(today)
 
   const startDate = new Date(today)
   startDate.setDate(today.getDate() - 364)
@@ -25,7 +30,7 @@ function buildWeeks(): (string | null)[][] {
   while (true) {
     const week: (string | null)[] = []
     for (let i = 0; i < 7; i++) {
-      const ds = d.toISOString().slice(0, 10)
+      const ds = toLocalDate(d)
       week.push(ds <= todayStr ? ds : null)
       d.setDate(d.getDate() + 1)
     }

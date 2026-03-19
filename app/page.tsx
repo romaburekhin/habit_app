@@ -10,17 +10,18 @@ import AddHabitModal from '@/components/AddHabitModal'
 import EditHabitModal from '@/components/EditHabitModal'
 import LoginModal from '@/components/LoginModal'
 
+function toLocalDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
 function getWeekBounds(): { from: string; to: string } {
   const today = new Date()
-  const dayOfWeek = today.getDay()
-  const monday = new Date(today)
-  monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7))
-  monday.setHours(0, 0, 0, 0)
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
+  today.setHours(0, 0, 0, 0)
+  const from = new Date(today)
+  from.setDate(today.getDate() - 6)
   return {
-    from: monday.toISOString().slice(0, 10),
-    to: sunday.toISOString().slice(0, 10),
+    from: toLocalDate(from),
+    to: toLocalDate(today),
   }
 }
 
@@ -65,9 +66,10 @@ export default function Home() {
     const next = viewMode === 'cards' ? 'heatmap' : 'cards'
     if (next === 'heatmap' && !yearCompletionsLoaded && habits.length > 0) {
       const today = new Date()
+      today.setHours(0, 0, 0, 0)
       const from = new Date(today)
       from.setDate(today.getDate() - 365)
-      fetchCompletions(from.toISOString().slice(0, 10), today.toISOString().slice(0, 10))
+      fetchCompletions(toLocalDate(from), toLocalDate(today))
         .then(data => { setYearCompletions(data); setYearCompletionsLoaded(true) })
     }
     setViewMode(next)
@@ -149,6 +151,13 @@ export default function Home() {
               ? prev.filter(c => !(c.habit_id === habit_id && c.date === date))
               : [...prev, { id: -1, habit_id, date }]
           )
+          if (yearCompletionsLoaded) {
+            setYearCompletions(prev =>
+              alreadyDone
+                ? prev.filter(c => !(c.habit_id === habit_id && c.date === date))
+                : [...prev, { id: -1, habit_id, date }]
+            )
+          }
           setHabits(prev => prev.map(h =>
             h.id === habit_id
               ? { ...h, completed_days: h.completed_days + (alreadyDone ? -1 : 1) }

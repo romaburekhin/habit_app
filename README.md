@@ -1,6 +1,6 @@
 # Habit Tracker
 
-A minimal full-stack habit tracking app. Create habits, track daily completions, and monitor weekly progress — per user, with Google sign-in.
+A minimal full-stack habit tracking PWA. Create habits, track daily completions, view weekly progress and year heatmaps — per user, with Google sign-in.
 
 ## Stack
 
@@ -12,6 +12,17 @@ A minimal full-stack habit tracking app. Create habits, track daily completions,
 | Auth        | Supabase (Google OAuth + email) |
 | Database    | SQLite via `better-sqlite3`     |
 | Tests       | Vitest                          |
+| Deployment  | Modal.com                       |
+
+## Features
+
+- Create habits with a custom color and flexible goal (this year / this month / full year / fixed days)
+- Weekly card view — toggle each day of the current week
+- Year heatmap view — GitHub-style grid for the past 365 days
+- Filter habits by All / Active / Done
+- Streak counter
+- PWA — installable on mobile (manifest + icons)
+- Google OAuth via Supabase
 
 ## Local Development
 
@@ -51,53 +62,74 @@ The SQLite database (`habits.sqlite`) is created automatically on first run.
 npm test
 ```
 
-## Deployment
+## Deployment (Modal.com)
 
-> **Important:** The app uses SQLite with a local file (`habits.sqlite`). This means it requires a server with a **persistent filesystem**. It is **not compatible** with Vercel or other serverless platforms as-is.
+The app is deployed on [Modal.com](https://modal.com) with a persistent volume for SQLite.
 
-### Recommended: Railway
+### Prerequisites
 
-1. Push your repo to GitHub
-2. Create a new project on [railway.app](https://railway.app) → Deploy from GitHub repo
-3. Add environment variables in Railway dashboard:
-   ```
-   NEXT_PUBLIC_SUPABASE_URL=...
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=...
-   ```
-4. Add a **Volume** in Railway and mount it at `/app` (or set `DB_PATH` env var to a persistent path)
-5. In Supabase → Authentication → URL Configuration, add your Railway domain:
-   ```
-   https://<your-app>.railway.app/**
-   ```
+```bash
+pip install modal
+modal setup
+```
 
-### Alternative: Render / Fly.io
+### Deploy
 
-Both support persistent disks. Follow the same steps — add a disk mount at the app's working directory.
+```bash
+modal deploy modal_app.py
+```
 
-### To deploy on Vercel (future)
+### First-time secrets setup
 
-Migrate `habits` and `completions` tables to Supabase Postgres and remove the `better-sqlite3` dependency. The auth layer is already Supabase.
+`NEXT_PUBLIC_*` vars are baked into the client bundle at build time (already set in `modal_app.py`). Runtime secrets are optional — they're only needed if you add server-side env vars:
+
+```bash
+modal secret create habit-tracker-secrets \
+  NEXT_PUBLIC_SUPABASE_URL=... \
+  NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+```
+
+### Important constraints
+
+- `max_containers=1` is **required** — SQLite does not support concurrent writes across multiple processes
+- The persistent volume is mounted at `/data` — the DB lives at `/data/habits.sqlite`
+- `NEXT_PUBLIC_*` vars must be set **at image build time**, not only at runtime
+
+### Supabase redirect URL
+
+After deploying, add your Modal URL to Supabase → Authentication → URL Configuration:
+```
+https://<your-username>--habit-tracker-serve.modal.run/**
+```
 
 ## Environment Variables
 
-| Variable                      | Description                        |
-|-------------------------------|------------------------------------|
-| `NEXT_PUBLIC_SUPABASE_URL`    | Supabase project URL               |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key         |
+| Variable                        | Description                  | Where set         |
+|---------------------------------|------------------------------|-------------------|
+| `NEXT_PUBLIC_SUPABASE_URL`      | Supabase project URL         | `.env.local` / `modal_app.py` image env |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon/public key     | `.env.local` / `modal_app.py` image env |
+| `DATABASE_PATH`                 | SQLite file path             | set by Modal at runtime (`/data/habits.sqlite`) |
+| `SITE_URL`                      | Canonical URL (OAuth redirect) | set by Modal at runtime |
 
 ## Project Structure
 
 ```
 app/
   api/habits/         — CRUD API for habits
+  api/habits/[id]/    — Update / delete by id
   api/completions/    — Toggle completions
+  api/init/           — Bootstrap: habits + current week completions
+  api/stats/          — Habit stats (streak, completed_days)
   auth/callback/      — Supabase OAuth callback
   login/              — Login page
   page.tsx            — Main habits view
 components/
-  HabitList.tsx       — Weekly grid + habit cards
-  AddHabitModal.tsx   — Create habit (bottom sheet on mobile)
-  EditHabitModal.tsx  — Edit + monthly calendar view
+  HabitList.tsx       — Weekly card view
+  HabitYearGrid.tsx   — Year heatmap card
+  AddHabitModal.tsx   — Create habit modal
+  EditHabitModal.tsx  — Edit habit + monthly calendar
+  LoginModal.tsx      — Auth modal
+  ProfileButton.tsx   — User avatar + logout
 lib/
   supabase/           — Server and browser Supabase clients
   habits.ts           — Habit queries (SQLite)
@@ -105,4 +137,5 @@ lib/
   db.ts               — SQLite singleton
 db/
   schema.sql          — Source-of-truth table definitions
+modal_app.py          — Modal.com deployment config
 ```

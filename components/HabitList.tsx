@@ -1,18 +1,19 @@
 import type { Habit, Completion } from '@/lib/types'
 import HabitYearGrid from '@/components/HabitYearGrid'
 
-const DAY_ABBREVS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+const DAY_ABBREVS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+
+function toLocalDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 function getWeekDates(): string[] {
   const today = new Date()
-  const dayOfWeek = today.getDay()
-  const monday = new Date(today)
-  monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7))
-  monday.setHours(0, 0, 0, 0)
+  today.setHours(0, 0, 0, 0)
   return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday)
-    d.setDate(monday.getDate() + i)
-    return d.toISOString().slice(0, 10)
+    const d = new Date(today)
+    d.setDate(today.getDate() - 6 + i)
+    return toLocalDate(d)
   })
 }
 
@@ -65,10 +66,8 @@ export default function HabitList({ habits, completions, yearCompletions, loadin
           <li
             key={habit.id}
             onClick={() => onEdit(habit)}
-            style={{ backgroundColor: (habit.color ?? '#F3F4F6') + '33' }}
-            className={`rounded-2xl border px-3 py-4 cursor-pointer transition-all ${
-              'border-transparent hover:opacity-90'
-            }`}
+            style={{ backgroundColor: (habit.color ?? '#F3F4F6') + '40' }}
+            className="rounded-2xl border border-transparent px-3 py-4 cursor-pointer transition-all hover:opacity-90"
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-2">
@@ -98,20 +97,12 @@ export default function HabitList({ habits, completions, yearCompletions, loadin
                 return (
                   <div key={date} className="flex flex-col items-center gap-0.5">
                     <span className="text-[10px] sm:text-[11px] font-medium text-gray-400">
-                      {DAY_ABBREVS[i]}
+                      {DAY_ABBREVS[new Date(date + 'T00:00:00').getDay()]}
                     </span>
                     <button
                       onClick={() => onToggleDay(habit.id, date)}
-                      style={{
-                        backgroundColor: filled
-                          ? (habit.color ?? '#9CA3AF')
-                          : ((habit.color ?? '#9CA3AF') + '55'),
-                      }}
-                      className={`w-9 h-9 min-[375px]:w-10 min-[375px]:h-10 sm:w-12 sm:h-12 rounded-full text-[10px] min-[375px]:text-xs sm:text-sm font-bold transition-opacity ${
-                        filled
-                          ? 'text-white shadow-md'
-                          : 'text-white hover:opacity-80'
-                      }`}
+                      style={{ backgroundColor: filled ? (habit.color ?? '#9CA3AF') : (habit.color ?? '#9CA3AF') + '61' }}
+                      className={`w-9 h-9 min-[375px]:w-10 min-[375px]:h-10 sm:w-12 sm:h-12 rounded-full text-[10px] min-[375px]:text-xs sm:text-sm font-bold text-white transition-opacity hover:opacity-80 ${filled ? 'shadow-sm' : ''}`}
                     >
                       {date.slice(8)}
                     </button>
@@ -125,7 +116,7 @@ export default function HabitList({ habits, completions, yearCompletions, loadin
                 style={pct >= 100 && habit.color ? { color: habit.color, filter: 'brightness(0.85)' } : undefined}
                 className={`text-[11px] ${pct >= 100 ? (habit.color ? '' : 'text-emerald-500 font-medium') : 'text-gray-400'}`}
               >
-                {count} / {habit.goal} days ({pct}%){pct >= 100 ? <span style={{ color: 'initial', filter: 'none' }}> 🎉</span> : ''}
+                {count} / {habit.goal} days ({pct}%){pct >= 100 ? ' 🎉' : ''}
               </span>
             </div>
           </li>
