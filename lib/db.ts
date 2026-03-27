@@ -33,4 +33,30 @@ function migrate(db: Database.Database) {
   if (!habitCols.find(c => c.name === 'color')) {
     db.exec('ALTER TABLE habits ADD COLUMN color TEXT')
   }
+  if (!habitCols.find(c => c.name === 'sort_order')) {
+    db.exec('ALTER TABLE habits ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0')
+    db.exec('UPDATE habits SET sort_order = id')
+  }
+
+  const tables = (db.pragma('table_list') as Array<{ name: string }>).map(t => t.name)
+  if (!tables.includes('profiles')) {
+    db.exec(`CREATE TABLE profiles (
+      user_id TEXT PRIMARY KEY,
+      email   TEXT NOT NULL,
+      name    TEXT
+    )`)
+  }
+  if (!tables.includes('challenges')) {
+    db.exec(`CREATE TABLE challenges (
+      id               INTEGER PRIMARY KEY AUTOINCREMENT,
+      inviter_id       TEXT    NOT NULL,
+      invitee_email    TEXT    NOT NULL,
+      invitee_id       TEXT,
+      inviter_habit_id INTEGER NOT NULL,
+      invitee_habit_id INTEGER,
+      status           TEXT    NOT NULL DEFAULT 'pending',
+      created_at       TEXT    NOT NULL,
+      FOREIGN KEY (inviter_habit_id) REFERENCES habits(id) ON DELETE CASCADE
+    )`)
+  }
 }

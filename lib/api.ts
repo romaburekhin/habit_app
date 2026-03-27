@@ -1,4 +1,4 @@
-import type { Habit, Completion } from './types'
+import type { Habit, Completion, Profile, ChallengeView } from './types'
 
 export async function fetchHabits(): Promise<Habit[]> {
   const res = await fetch('/api/habits')
@@ -42,6 +42,14 @@ export async function updateHabit(id: number, name: string, goal: number, color?
   return res.json()
 }
 
+export async function reorderHabits(ids: number[]): Promise<void> {
+  await fetch('/api/habits/reorder', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  })
+}
+
 export async function deleteHabit(id: number): Promise<void> {
   const res = await fetch(`/api/habits/${id}`, { method: 'DELETE' })
   if (!res.ok) throw new Error('Failed to delete habit')
@@ -63,5 +71,46 @@ export async function toggleCompletion(
     body: JSON.stringify({ habit_id, date }),
   })
   if (!res.ok) throw new Error('Failed to toggle completion')
+  return res.json()
+}
+
+export async function searchUsers(email: string): Promise<Profile[]> {
+  const res = await fetch(`/api/users/search?email=${encodeURIComponent(email)}`)
+  if (!res.ok) throw new Error('Failed to search users')
+  return res.json()
+}
+
+export async function fetchChallenges(): Promise<ChallengeView[]> {
+  const res = await fetch('/api/challenges')
+  if (!res.ok) throw new Error('Failed to fetch challenges')
+  return res.json()
+}
+
+export async function createChallenge(habit_id: number, invitee_email: string): Promise<void> {
+  const res = await fetch('/api/challenges', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ habit_id, invitee_email }),
+  })
+  if (!res.ok) throw new Error('Failed to create challenge')
+}
+
+export async function respondToChallenge(id: number, action: 'accept' | 'decline'): Promise<void> {
+  const res = await fetch(`/api/challenges/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action }),
+  })
+  if (!res.ok) throw new Error('Failed to respond to challenge')
+}
+
+export async function deleteChallenge(id: number): Promise<void> {
+  const res = await fetch(`/api/challenges/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete challenge')
+}
+
+export async function fetchChallengeCompletions(id: number): Promise<{ my_completions: string[]; their_completions: string[] }> {
+  const res = await fetch(`/api/challenges/${id}/completions`)
+  if (!res.ok) throw new Error('Failed to fetch challenge completions')
   return res.json()
 }

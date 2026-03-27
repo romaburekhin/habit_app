@@ -24,6 +24,7 @@ image = (
     .env({
         "NEXT_PUBLIC_SUPABASE_URL": "https://ehfccwbvejfexzhguoeb.supabase.co",
         "NEXT_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_6ae0MEsgAMn1kDeHyPfoNA_NzM7hwP3",
+        "NEXT_PUBLIC_VAPID_PUBLIC_KEY": "BJI93q7t8EY7rAwMGvzYU4gMTO7ifrp-uYcWlNES-kuMKaeZQlqLh4UWG0IfSjGaxzfgOz3TDWhkhlyVDblKYT8",
     })
     .run_commands(
         "cd /app && npm ci",
