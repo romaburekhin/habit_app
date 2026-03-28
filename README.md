@@ -19,6 +19,7 @@ A minimal full-stack habit tracking PWA (Progressive Web App). Create habits, tr
 ## Features
 
 - Create habits with a custom color and flexible goal (this year / this month / full year / fixed days)
+- **Daily check-in** — Tinder-style swipe cards: swipe right = done, swipe left = skip; auto-opens on launch when habits are pending
 - Weekly card view — toggle each day of the current week
 - Year heatmap view — GitHub-style grid for the past 365 days
 - Navigable monthly calendar inside each habit for backdating
@@ -26,7 +27,7 @@ A minimal full-stack habit tracking PWA (Progressive Web App). Create habits, tr
 - Filter habits: All / Active / Done / Shared
 - Streak counter
 - Shared goals — invite another user to compete on the same habit
-- Push notifications — daily reminders via Web Push (iOS 16.4+ PWA, Android Chrome)
+- Push notifications — daily reminders via Web Push (iOS 16.4+ PWA, Android Chrome); tapping a notification opens the daily check-in
 - PWA — installable on mobile (manifest + service worker)
 - Google OAuth via Supabase
 
@@ -143,6 +144,8 @@ app/
 components/
   HabitList.tsx              — Weekly card view with drag & drop
   HabitYearGrid.tsx          — Year heatmap card
+  DailySwipe.tsx             — Daily check-in swipe modal (Tinder-style cards)
+  TrackDayButton.tsx         — Header button that opens the daily check-in
   AddHabitModal.tsx          — Create habit modal
   EditHabitModal.tsx         — Edit habit + navigable monthly calendar
   ChallengeCard.tsx          — Shared goal card with calendars

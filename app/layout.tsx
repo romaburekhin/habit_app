@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import LogoutButton from '@/components/LogoutButton'
 import ProfileButton from '@/components/ProfileButton'
 import NotificationSettings from '@/components/NotificationSettings'
+import TrackDayButton from '@/components/TrackDayButton'
 
 export const metadata = {
   title: 'Habit Tracker',
@@ -41,6 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             <Link href="/" className="text-base sm:text-lg font-semibold tracking-tight text-gray-900 hover:opacity-70 transition-opacity">Habit Tracker</Link>
             {user && (
               <div className="flex items-center gap-3">
+                <TrackDayButton />
                 <NotificationSettings />
                 <ProfileButton initials={initials} />
                 <LogoutButton />

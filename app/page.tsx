@@ -11,6 +11,7 @@ import EditHabitModal from '@/components/EditHabitModal'
 import LoginModal from '@/components/LoginModal'
 import CommonGoalModal from '@/components/CommonGoalModal'
 import ChallengeCard from '@/components/ChallengeCard'
+import DailySwipe from '@/components/DailySwipe'
 
 function toLocalDate(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -41,13 +42,15 @@ export default function Home() {
   const [showCommonModal, setShowCommonModal] = useState(false)
   const [editingHabit, setEditingHabit] = useState<Habit | null>(null)
   const [viewMode, setViewMode] = useState<'cards' | 'heatmap'>('cards')
-  const [filter, setFilter] = useState<'all' | 'active' | 'done' | 'common'>('all')
+  const [filter, setFilter] = useState<'all' | 'active' | 'done' | 'common'>('active')
   const [challenges, setChallenges] = useState<ChallengeView[]>([])
+  const [showSwipe, setShowSwipe] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [toasts, setToasts] = useState<{ id: number; msg: string }[]>([])
   const touchStartY = useRef(0)
   const pulling = useRef(false)
   const prevChallenges = useRef<ChallengeView[]>([])
+  const autoOpened = useRef(false)
 
   const addToast = useCallback((msg: string) => {
     const id = Date.now()
@@ -100,7 +103,19 @@ export default function Home() {
     if (!user) { setHabits([]); setCompletions([]); setLoading(false); return }
     setLoading(true)
     fetchInit()
-      .then(({ habits, completions }) => { setHabits(habits); setCompletions(completions) })
+      .then(({ habits, completions }) => {
+        setHabits(habits)
+        setCompletions(completions)
+        if (!autoOpened.current) {
+          autoOpened.current = true
+          const today = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
+          const hasPending = habits.some(h =>
+            h.completed_days < h.goal &&
+            !completions.some(c => c.habit_id === h.id && c.date === today)
+          )
+          if (hasPending) setShowSwipe(true)
+        }
+      })
       .catch(() => setError('Could not load habits.'))
       .finally(() => setLoading(false))
     fetchChallenges().then(data => { setChallenges(data); prevChallenges.current = data }).catch(() => {})
@@ -113,6 +128,20 @@ export default function Home() {
     document.addEventListener('visibilitychange', onVisibilityChange)
     return () => document.removeEventListener('visibilitychange', onVisibilityChange)
   }, [refresh])
+
+  useEffect(() => {
+    function onTrackDay() { setShowSwipe(true) }
+    window.addEventListener('track-day', onTrackDay)
+    return () => window.removeEventListener('track-day', onTrackDay)
+  }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('track') === '1') {
+      setShowSwipe(true)
+      window.history.replaceState({}, '', '/')
+    }
+  }, [])
 
   useEffect(() => {
     function onTouchStart(e: TouchEvent) {
@@ -189,7 +218,7 @@ export default function Home() {
         {habits.length > 0 || challenges.length > 0 ? (
           <div className="flex items-center gap-1.5">
             <div className="flex gap-0.5 bg-gray-200 rounded-full p-0.5">
-              {(['all', 'active', 'done'] as const).map(f => (
+              {(['active', 'done', 'all'] as const).map(f => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -393,6 +422,25 @@ export default function Home() {
               ))
             })
           }}
+        />
+      )}
+
+      {showSwipe && (
+        <DailySwipe
+          habits={habits}
+          completions={completions}
+          onToggle={(habitId, date, added) => {
+            setCompletions(prev =>
+              added
+                ? [...prev, { id: -1, habit_id: habitId, date }]
+                : prev.filter(c => !(c.habit_id === habitId && c.date === date))
+            )
+            setHabits(prev => prev.map(h =>
+              h.id === habitId ? { ...h, completed_days: h.completed_days + (added ? 1 : -1) } : h
+            ))
+          }}
+          onCompleted={() => window.dispatchEvent(new CustomEvent('track-day-complete'))}
+          onClose={() => setShowSwipe(false)}
         />
       )}
 
