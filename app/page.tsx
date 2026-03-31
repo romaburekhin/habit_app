@@ -113,7 +113,7 @@ export default function Home() {
             h.completed_days < h.goal &&
             !completions.some(c => c.habit_id === h.id && c.date === today)
           )
-          if (hasPending) setShowSwipe(true)
+          if (hasPending && localStorage.getItem('swipe-mode-enabled') !== 'false') setShowSwipe(true)
         }
       })
       .catch(() => setError('Could not load habits.'))

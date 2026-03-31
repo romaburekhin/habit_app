@@ -19,6 +19,7 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import type { Habit, Completion } from '@/lib/types'
 import HabitYearGrid from '@/components/HabitYearGrid'
+import { COLOR_VARIANTS } from '@/lib/colors'
 
 const DAY_ABBREVS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
@@ -52,7 +53,7 @@ function SortableHabitCard({ habit, completions, sharedWith, weekDates, onEdit, 
     transform: CSS.Transform.toString(transform),
     transition,
     opacity: isDragging ? 0.5 : 1,
-    backgroundColor: (habit.color ?? '#F3F4F6') + '40',
+    backgroundColor: COLOR_VARIANTS[habit.color ?? '']?.card ?? (habit.color ?? '#F3F4F6') + '40',
   }
 
   const count = habit.completed_days
@@ -64,19 +65,16 @@ function SortableHabitCard({ habit, completions, sharedWith, weekDates, onEdit, 
       ref={setNodeRef}
       style={style}
       onClick={() => onEdit(habit)}
-      className="rounded-2xl border border-transparent px-3 py-4 cursor-pointer transition-all hover:opacity-90"
+      className="rounded-2xl border border-transparent px-3 py-[18px] cursor-pointer transition-all hover:opacity-90"
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
         <div className="flex flex-col min-w-0 flex-1">
           <span
-            style={habit.color ? { color: habit.color, filter: 'brightness(0.7)' } : undefined}
-            className={`text-sm font-normal tracking-tight truncate ${!habit.color && 'text-gray-700'}`}
+            style={habit.color ? { color: COLOR_VARIANTS[habit.color]?.filled ?? habit.color, filter: COLOR_VARIANTS[habit.color] ? undefined : 'brightness(0.7)' } : undefined}
+            className={`text-[14.7px] font-bold tracking-tight truncate ${!habit.color && 'text-gray-700'}`}
           >
             {habit.name}
-          </span>
-          <span className="text-[10px] text-gray-400">
-            Since {new Date(habit.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
           </span>
         </div>
         <div className="flex items-center gap-2 shrink-0 ml-2">
@@ -116,8 +114,8 @@ function SortableHabitCard({ habit, completions, sharedWith, weekDates, onEdit, 
               </span>
               <button
                 onClick={() => onToggleDay(habit.id, date)}
-                style={{ backgroundColor: filled ? (habit.color ?? '#9CA3AF') : (habit.color ?? '#9CA3AF') + '61' }}
-                className={`w-9 h-9 min-[375px]:w-10 min-[375px]:h-10 sm:w-12 sm:h-12 rounded-full text-[10px] min-[375px]:text-xs sm:text-sm font-bold text-white transition-opacity hover:opacity-80 ${filled ? 'shadow-sm' : ''}`}
+                style={{ backgroundColor: filled ? (COLOR_VARIANTS[habit.color ?? '']?.filled ?? habit.color ?? '#9CA3AF') : (COLOR_VARIANTS[habit.color ?? '']?.unfilled ?? (habit.color ?? '#9CA3AF') + '61') }}
+                className={`w-[38px] h-[38px] min-[375px]:w-[41.8px] min-[375px]:h-[41.8px] sm:w-[3.135rem] sm:h-[3.135rem] rounded-full text-[12px] min-[375px]:text-[14.4px] sm:text-[16.8px] font-semibold text-white transition-opacity hover:opacity-80 ${filled ? 'shadow-sm' : ''}`}
               >
                 {date.slice(8)}
               </button>
@@ -128,7 +126,7 @@ function SortableHabitCard({ habit, completions, sharedWith, weekDates, onEdit, 
 
       <div className="flex items-center justify-between">
         {sharedWith ? (
-          <span className="text-[10px] text-gray-400 bg-black/8 rounded-full px-1.5 py-0.5 capitalize">
+          <span className="text-[10px] text-gray-400 bg-black/4 rounded-full px-1.5 py-0.5 capitalize">
             shared with {sharedWith.split(' ')[0]}
           </span>
         ) : <div />}

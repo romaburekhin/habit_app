@@ -193,7 +193,7 @@ export default function DailySwipe({ habits, completions, onToggle, onClose, onC
 
               {/* Habit content */}
               <div className="absolute inset-0 flex flex-col justify-center items-center px-6 pb-16 gap-3" style={{ paddingTop: '30%' }}>
-                <p className="text-3xl font-bold text-white text-center" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
+                <p className="text-5xl font-bold text-white text-center" style={{ textShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
                   {current.name}
                 </p>
                 <p className="text-sm font-semibold text-white/80 tracking-wide">Done today?</p>

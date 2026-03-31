@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { respondToChallenge, deleteChallenge, fetchChallengeCompletions, updateHabit } from '@/lib/api'
 import type { ChallengeView } from '@/lib/types'
-import { HABIT_COLORS, GRAY_COLOR } from '@/lib/colors'
+import { HABIT_COLORS, GRAY_COLOR, COLOR_VARIANTS } from '@/lib/colors'
 
 const DAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -126,7 +126,15 @@ function buildWeeks(): (string | null)[][] {
 const MONTH_LABELS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const DAY_LABEL_MAP: Record<number, string> = { 0: 'Mon', 2: 'Wed', 4: 'Fri' }
 
+const CELL = 7
+const GAP = 2
+const COL_UNIT = CELL + GAP
+const LABEL_W = 20
+
 function YearGrid({ completedDates, color }: { completedDates: Set<string>; color: string | null }) {
+  const variants = COLOR_VARIANTS[color ?? '']
+  const filledColor = variants?.filled ?? color ?? undefined
+  const unfilledColor = variants?.unfilled ?? (color ? color + '35' : undefined)
   const weeks = buildWeeks()
   const cols = weeks.length
   const cells = weeks.flatMap((week, colIdx) =>
@@ -142,47 +150,56 @@ function YearGrid({ completedDates, color }: { completedDates: Set<string>; colo
     }
   })
   const monthLabels: { label: string; col: number }[] = []
-  let lastShownCol = -7
+  let lastShownCol = -4
   for (const m of allMonthLabels) {
-    if (m.col - lastShownCol >= 7) { monthLabels.push(m); lastShownCol = m.col }
+    if (m.col - lastShownCol >= 4) { monthLabels.push(m); lastShownCol = m.col }
   }
 
   const gridStyle: React.CSSProperties = {
     display: 'grid',
-    gridTemplateColumns: `repeat(${cols}, 1fr)`,
+    gridTemplateColumns: `repeat(${cols}, ${CELL}px)`,
     gridTemplateRows: 'repeat(7, auto)',
     gridAutoFlow: 'column',
-    gap: '1.5px',
+    gap: `${GAP}px`,
   }
 
+  const innerWidth = LABEL_W + cols * COL_UNIT
+
+  const scrollRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+  }, [])
+
   return (
-    <div>
-      <div className="relative h-3 pl-5 mb-0.5">
-        {monthLabels.map(({ label, col }) => (
-          <span key={col} className="absolute text-[7px] text-gray-400 whitespace-nowrap" style={{ left: `calc(20px + ${(col / cols) * 100}%)` }}>
-            {label}
-          </span>
-        ))}
-      </div>
-      <div className="relative pl-5">
-        {[0, 1, 2, 3, 4, 5, 6].map(i =>
-          DAY_LABEL_MAP[i] ? (
-            <span key={i} className="absolute text-[8px] text-gray-400 leading-none" style={{ left: 0, width: '18px', textAlign: 'right', top: `${((i * 2 + 1) / 14) * 100}%`, transform: 'translateY(-50%)' }}>
-              {DAY_LABEL_MAP[i]}
+    <div ref={scrollRef} className="overflow-x-auto [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none' }}>
+      <div style={{ width: `${innerWidth}px` }}>
+        <div className="relative h-3 mb-0.5" style={{ paddingLeft: `${LABEL_W}px` }}>
+          {monthLabels.map(({ label, col }) => (
+            <span key={col} className="absolute text-[7px] text-gray-500 whitespace-nowrap" style={{ left: `${LABEL_W + col * COL_UNIT}px` }}>
+              {label}
             </span>
-          ) : null
-        )}
-        <div style={gridStyle}>
-          {cells.map(({ date, colIdx, dayIdx }) => {
-            const filled = date ? completedDates.has(date) : false
-            return (
-              <div
-                key={`${colIdx}-${dayIdx}`}
-                style={{ aspectRatio: '1', backgroundColor: date === null ? undefined : filled ? (color ?? undefined) : (color ? color + '30' : undefined) }}
-                className={`rounded-[2px] ${date === null ? 'opacity-0' : filled ? (color ? '' : 'bg-emerald-500') : (color ? '' : 'bg-gray-200')}`}
-              />
-            )
-          })}
+          ))}
+        </div>
+        <div className="relative" style={{ paddingLeft: `${LABEL_W}px` }}>
+          {[0, 1, 2, 3, 4, 5, 6].map(i =>
+            DAY_LABEL_MAP[i] ? (
+              <span key={i} className="absolute text-[8px] text-gray-500 leading-none" style={{ left: 0, width: `${LABEL_W - 2}px`, textAlign: 'right', top: `${((i * 2 + 1) / 14) * 100}%`, transform: 'translateY(-50%)' }}>
+                {DAY_LABEL_MAP[i]}
+              </span>
+            ) : null
+          )}
+          <div style={gridStyle}>
+            {cells.map(({ date, colIdx, dayIdx }) => {
+              const filled = date ? completedDates.has(date) : false
+              return (
+                <div
+                  key={`${colIdx}-${dayIdx}`}
+                  style={{ width: `${CELL}px`, height: `${CELL}px`, backgroundColor: date === null ? undefined : filled ? filledColor : unfilledColor }}
+                  className={`rounded-[2px] ${date === null ? 'opacity-0' : filled ? (color ? '' : 'bg-emerald-500') : (color ? '' : 'bg-gray-200')}`}
+                />
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
@@ -298,7 +315,6 @@ export default function ChallengeCard({ challenge, showHeatmap, onAccepted, onDe
     dialogRef.current?.showModal()
   }
 
-  const theirColor = challenge.their_habit?.color ?? null
   const myColor = challenge.my_habit?.color ?? null
 
   // Pending invite (I'm invitee)
@@ -365,13 +381,13 @@ export default function ChallengeCard({ challenge, showHeatmap, onAccepted, onDe
   const theirWon = challenge.their_habit.completed_days >= challenge.their_habit.goal
   const theirFirstName = (challenge.their_name ?? challenge.their_email).split(' ')[0]
 
-  const cardBg = (myColor ?? '#F3F4F6') + '40'
+  const cardBg = '#ECEEF1'
   const labelColor = myColor ? { color: myColor, filter: 'brightness(0.7)' } : undefined
   const activeColor = selectedColor ?? '#E5E7EB'
 
   return (
     <li
-      className="rounded-2xl border border-transparent px-3 py-4 space-y-3 cursor-pointer transition-all hover:opacity-90"
+      className="relative rounded-2xl border border-transparent px-3 py-4 space-y-3 cursor-pointer transition-all hover:opacity-90"
       style={{ backgroundColor: cardBg }}
       onClick={openEditModal}
     >
@@ -499,43 +515,32 @@ export default function ChallengeCard({ challenge, showHeatmap, onAccepted, onDe
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span style={labelColor} className={`text-sm font-normal tracking-tight truncate ${!myColor ? 'text-gray-700' : ''}`}>
+        <span
+          style={myColor ? { color: COLOR_VARIANTS[myColor]?.filled ?? myColor, filter: COLOR_VARIANTS[myColor] ? undefined : 'brightness(0.7)' } : undefined}
+          className={`text-[14.7px] font-bold tracking-tight truncate ${!myColor ? 'text-gray-700' : ''}`}
+        >
           {challenge.my_habit.name}
         </span>
         <div className="flex items-center shrink-0 ml-2">
-          {!myWon && !theirWon && leading === 'me' && <span className="text-[11px]" style={labelColor ?? { color: '#10B981' }}>You're ahead 😎</span>}
-          {!myWon && !theirWon && leading === 'them' && <span className="text-[11px] capitalize" style={labelColor ?? { color: '#9CA3AF' }}>{theirFirstName} ahead</span>}
-          {!myWon && !theirWon && leading === 'tie' && <span className="text-[11px]" style={labelColor ?? { color: '#9CA3AF' }}>Even</span>}
+          {!myWon && !theirWon && leading === 'me' && <span className="text-[11px]" style={myColor ? { color: COLOR_VARIANTS[myColor]?.filled ?? myColor, filter: COLOR_VARIANTS[myColor] ? undefined : 'brightness(0.7)' } : { color: '#10B981' }}>You're ahead 😎</span>}
+          {!myWon && !theirWon && leading === 'them' && <span className="text-[11px] capitalize" style={myColor ? { color: COLOR_VARIANTS[myColor]?.filled ?? myColor, filter: COLOR_VARIANTS[myColor] ? undefined : 'brightness(0.7)' } : { color: '#9CA3AF' }}>{theirFirstName} ahead</span>}
+          {!myWon && !theirWon && leading === 'tie' && <span className="text-[11px]" style={myColor ? { color: COLOR_VARIANTS[myColor]?.filled ?? myColor, filter: COLOR_VARIANTS[myColor] ? undefined : 'brightness(0.7)' } : { color: '#9CA3AF' }}>Even</span>}
         </div>
       </div>
 
-      {/* Winner banner */}
+      {/* Winner badge */}
       {(myWon || theirWon) && (
         <div
-          className="rounded-2xl px-4 py-3 flex items-center gap-3"
+          className="absolute top-3 right-3 flex items-center gap-1 rounded-full px-2 py-0.5"
           style={{ backgroundColor: (myColor ?? '#10B981') + '28' }}
         >
-          <span className="text-2xl leading-none shrink-0">
-            {myWon && theirWon ? '🎉' : '🏆'}
+          <span className="text-[11px] leading-none">{myWon && theirWon ? '🎉' : '🏆'}</span>
+          <span
+            className="text-[10px] font-semibold"
+            style={myColor ? { color: COLOR_VARIANTS[myColor]?.filled ?? myColor, filter: COLOR_VARIANTS[myColor] ? undefined : 'brightness(0.7)' } : { color: '#10B981' }}
+          >
+            {myWon && theirWon ? 'Both won!' : myWon ? 'You won!' : `${theirFirstName} won!`}
           </span>
-          <div className="min-w-0">
-            {myWon && theirWon ? (
-              <>
-                <p className="text-xs font-semibold" style={labelColor ?? { color: '#10B981' }}>You both won!</p>
-                <p className="text-[11px] text-gray-400">Goal achieved together</p>
-              </>
-            ) : myWon ? (
-              <>
-                <p className="text-xs font-semibold" style={labelColor ?? { color: '#10B981' }}>You are the winner!</p>
-                <p className="text-[11px] text-gray-400">Goal achieved this month</p>
-              </>
-            ) : (
-              <>
-                <p className="text-xs font-semibold text-gray-700 capitalize">{theirFirstName} is the winner!</p>
-                <p className="text-[11px] text-gray-400">They reached the goal first</p>
-              </>
-            )}
-          </div>
         </div>
       )}
 
@@ -561,7 +566,7 @@ export default function ChallengeCard({ challenge, showHeatmap, onAccepted, onDe
           <span className="text-[11px] text-gray-400 shrink-0">{stats(challenge.their_habit.completed_days, challenge.their_habit.goal)}</span>
         </div>
         {showHeatmap && (theirDates
-          ? <YearGrid completedDates={theirDates} color={theirColor} />
+          ? <YearGrid completedDates={theirDates} color={myColor} />
           : <div className="h-10 rounded-lg bg-black/5 animate-pulse" />
         )}
         {!showHeatmap && <ProgressBar value={challenge.their_habit.completed_days} goal={challenge.their_habit.goal} color={myColor} />}

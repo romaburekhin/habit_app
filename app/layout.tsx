@@ -1,9 +1,8 @@
 import './globals.css'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
-import LogoutButton from '@/components/LogoutButton'
 import ProfileButton from '@/components/ProfileButton'
-import NotificationSettings from '@/components/NotificationSettings'
+import SettingsModal from '@/components/SettingsModal'
 import TrackDayButton from '@/components/TrackDayButton'
 
 export const metadata = {
@@ -43,9 +42,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             {user && (
               <div className="flex items-center gap-3">
                 <TrackDayButton />
-                <NotificationSettings />
+                <SettingsModal />
                 <ProfileButton initials={initials} />
-                <LogoutButton />
               </div>
             )}
           </div>
