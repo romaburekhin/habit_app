@@ -6,15 +6,12 @@ import { createClient } from '@/lib/supabase/server'
 
 function getWeekBounds(): { from: string; to: string } {
   const today = new Date()
-  const dayOfWeek = today.getDay()
-  const monday = new Date(today)
-  monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7))
-  monday.setHours(0, 0, 0, 0)
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
+  const to = new Date(today)
+  const from = new Date(today)
+  from.setDate(today.getDate() - 7)
   return {
-    from: monday.toISOString().slice(0, 10),
-    to: sunday.toISOString().slice(0, 10),
+    from: from.toISOString().slice(0, 10),
+    to: to.toISOString().slice(0, 10),
   }
 }
 
