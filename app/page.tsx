@@ -74,6 +74,7 @@ export default function Home() {
       prevChallenges.current = newChallenges
       setHabits(habits)
       setCompletions(completions)
+      try { localStorage.setItem(`habit-cache-${user.id}`, JSON.stringify({ habits, completions })) } catch {}
       setChallenges(newChallenges)
       setYearCompletionsLoaded(false)
     } catch {
@@ -89,7 +90,21 @@ export default function Home() {
     supabase.auth.getSession().then(({ data }) => {
       const sessionUser = data.session?.user ?? null
       setUser(sessionUser)
-      if (sessionUser) setLoading(true) // eagerly show spinner while habits load
+      if (sessionUser) {
+        // Load cached data immediately so circles are filled on first render
+        try {
+          const cached = localStorage.getItem(`habit-cache-${sessionUser.id}`)
+          if (cached) {
+            const { habits, completions } = JSON.parse(cached)
+            setHabits(habits)
+            setCompletions(completions)
+          } else {
+            setLoading(true)
+          }
+        } catch {
+          setLoading(true)
+        }
+      }
       setAuthReady(true)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
@@ -101,11 +116,11 @@ export default function Home() {
 
   useEffect(() => {
     if (!user) { setHabits([]); setCompletions([]); setLoading(false); return }
-    setLoading(true)
     fetchInit()
       .then(({ habits, completions }) => {
         setHabits(habits)
         setCompletions(completions)
+        try { localStorage.setItem(`habit-cache-${user.id}`, JSON.stringify({ habits, completions })) } catch {}
         if (!autoOpened.current) {
           autoOpened.current = true
           const today = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(new Date().getDate()).padStart(2, '0')}`
