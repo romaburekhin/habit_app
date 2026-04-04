@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { registerPush } from '@/lib/push'
 
 const DAYS = [
@@ -25,9 +25,25 @@ export default function NotificationSettings() {
   const [schedule, setSchedule] = useState<Schedule>({ time: '09:00', days: '1,2,3,4,5', timezone: 'UTC', enabled: 0 })
   const [saving, setSaving] = useState(false)
 
+  const initialized = useRef(false)
+
   useEffect(() => {
-    fetch('/api/push/schedule').then(r => r.json()).then(setSchedule).catch(() => {})
+    fetch('/api/push/schedule').then(r => r.json()).then(data => {
+      setSchedule(data)
+      initialized.current = true
+    }).catch(() => { initialized.current = true })
   }, [])
+
+  useEffect(() => {
+    if (!initialized.current || !schedule.enabled) return
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const updated = { ...schedule, timezone }
+    fetch('/api/push/schedule', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updated),
+    }).catch(() => {})
+  }, [schedule.time, schedule.days])
 
   const selectedDays = schedule.days.split(',').map(Number)
 
@@ -132,7 +148,7 @@ export default function NotificationSettings() {
               >
                 {saving ? 'Saving…' : schedule.enabled ? 'Update reminder' : 'Turn on'}
               </button>
-              {schedule.enabled && (
+              {!!schedule.enabled && (
                 <button
                   onClick={() => save(false)}
                   disabled={saving}

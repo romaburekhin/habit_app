@@ -168,7 +168,7 @@ export default function SettingsModal() {
                     >
                       {saving ? 'Saving…' : schedule.enabled ? 'Update reminder' : 'Turn on'}
                     </button>
-                    {schedule.enabled && (
+                    {!!schedule.enabled && (
                       <button
                         onClick={() => saveReminder(false)}
                         disabled={saving}

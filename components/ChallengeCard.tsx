@@ -323,7 +323,7 @@ export default function ChallengeCard({ challenge, showHeatmap, onAccepted, onDe
       <li className="rounded-2xl border border-gray-200 bg-white px-4 py-4 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-0.5">Shared goal from</p>
+            <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-0.5">Challenge from</p>
             <p className="text-sm text-gray-800 truncate capitalize">{challenge.their_name ?? challenge.their_email}</p>
             {challenge.their_name && <p className="text-[11px] text-gray-400 truncate">{challenge.their_email}</p>}
           </div>

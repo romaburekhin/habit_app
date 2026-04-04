@@ -94,7 +94,7 @@ export async function POST(request: Request) {
   if (invitee?.user_id) {
     const inviterProfile = db.prepare('SELECT name, email FROM profiles WHERE user_id = ?').get(session.user.id) as { name: string | null; email: string } | undefined
     const inviterName = inviterProfile?.name?.split(' ')[0] ?? inviterProfile?.email ?? 'Someone'
-    sendPush(invitee.user_id, 'New Shared Goal', `${inviterName} invited you to a Shared Goal`).catch(() => {})
+    sendPush(invitee.user_id, 'New Challenge', `${inviterName} invited you to a Challenge`).catch(() => {})
   }
 
   return NextResponse.json(created, { status: 201 })

@@ -251,7 +251,7 @@ export default function Home() {
                     filter === 'common' ? 'bg-gray-900 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'
                   }`}
                 >
-                  Shared
+                  Challenge
                 </button>
               )}
             </div>

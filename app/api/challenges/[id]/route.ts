@@ -37,7 +37,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     // Notify inviter
     const inviteeProfile = db.prepare('SELECT name, email FROM profiles WHERE user_id = ?').get(session.user.id) as { name: string | null; email: string } | undefined
     const inviteeName = inviteeProfile?.name?.split(' ')[0] ?? inviteeProfile?.email ?? 'Someone'
-    sendPush(challenge.inviter_id as string, 'Shared Goal Accepted', `${inviteeName} accepted your Shared Goal`).catch(() => {})
+    sendPush(challenge.inviter_id as string, 'Challenge Accepted', `${inviteeName} accepted your Challenge`).catch(() => {})
   } else if (action === 'decline') {
     const isInvitee = challenge.invitee_id === session.user.id || challenge.invitee_email === session.user.email
     const isInviter = challenge.inviter_id === session.user.id
@@ -79,7 +79,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     const leaverName = leaverProfile?.name?.split(' ')[0] ?? leaverProfile?.email ?? 'Someone'
     const otherUserId = isInviter ? challenge.invitee_id as string : challenge.inviter_id as string
     if (otherUserId) {
-      sendPush(otherUserId, 'Shared Goal Ended', `${leaverName} left the Shared Goal`).catch(() => {})
+      sendPush(otherUserId, 'Challenge Ended', `${leaverName} left the Challenge`).catch(() => {})
     }
   }
 
