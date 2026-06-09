@@ -127,7 +127,7 @@ function SortableHabitCard({ habit, completions, sharedWith, weekDates, onEdit, 
       <div className="flex items-center justify-between">
         {sharedWith ? (
           <span className="text-[10px] text-gray-400 bg-black/4 rounded-full px-1.5 py-0.5 capitalize">
-            shared with {sharedWith.split(' ')[0]}
+            challenge with {sharedWith.split(' ')[0]}
           </span>
         ) : <div />}
         <span

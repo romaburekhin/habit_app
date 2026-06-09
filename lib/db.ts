@@ -56,7 +56,26 @@ function migrate(db: Database.Database) {
       invitee_habit_id INTEGER,
       status           TEXT    NOT NULL DEFAULT 'pending',
       created_at       TEXT    NOT NULL,
+      description      TEXT,
+      period_end       TEXT,
       FOREIGN KEY (inviter_habit_id) REFERENCES habits(id) ON DELETE CASCADE
     )`)
+  } else {
+    const challengeCols = db.pragma('table_info(challenges)') as Array<{ name: string }>
+    if (!challengeCols.find(c => c.name === 'description')) {
+      db.exec('ALTER TABLE challenges ADD COLUMN description TEXT')
+    }
+    if (!challengeCols.find(c => c.name === 'period_end')) {
+      db.exec('ALTER TABLE challenges ADD COLUMN period_end TEXT')
+    }
+    if (!challengeCols.find(c => c.name === 'start_date')) {
+      db.exec('ALTER TABLE challenges ADD COLUMN start_date TEXT')
+    }
+    if (!challengeCols.find(c => c.name === 'update_proposal')) {
+      db.exec('ALTER TABLE challenges ADD COLUMN update_proposal TEXT')
+    }
+    if (!challengeCols.find(c => c.name === 'update_proposed_by')) {
+      db.exec('ALTER TABLE challenges ADD COLUMN update_proposed_by TEXT')
+    }
   }
 }

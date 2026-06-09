@@ -52,5 +52,10 @@ CREATE TABLE IF NOT EXISTS challenges (
   invitee_habit_id INTEGER,
   status           TEXT    NOT NULL DEFAULT 'pending',
   created_at       TEXT    NOT NULL,
+  description      TEXT,
+  period_end       TEXT,
+  start_date         TEXT,
+  update_proposal    TEXT,
+  update_proposed_by TEXT,
   FOREIGN KEY (inviter_habit_id) REFERENCES habits(id) ON DELETE CASCADE
 );

@@ -65,10 +65,10 @@ function WeekGrid({ habits, completions, dates }: {
   habits: Habit[]; completions: Completion[]; dates: string[]
 }) {
   const today = fmt(new Date())
-  const COL = 'minmax(0,1fr) repeat(7,2rem) 2.75rem'
-  const GAP = '0 4px'
+  const COL = 'minmax(3rem,0.6fr) repeat(7,2.2rem) 1.8rem'
+  const GAP = '0 2px'
   return (
-    <div className="px-4 pb-5">
+    <div className="px-3 pb-5">
       <div className="grid mb-2" style={{ gridTemplateColumns: COL, gap: GAP }}>
         <div />
         {dates.map((d, i) => {
@@ -90,15 +90,15 @@ function WeekGrid({ habits, completions, dates }: {
           const color = h.color ?? '#9CA3AF'
           const filledColor = COLOR_VARIANTS[color]?.filled ?? color
           return (
-            <div key={h.id} className="grid items-center py-2 border-b border-gray-50 last:border-0"
+            <div key={h.id} className="grid items-center py-1 border-b border-gray-50 last:border-0"
               style={{ gridTemplateColumns: COL, gap: GAP }}
             >
-              <span className="text-sm text-gray-800 font-medium truncate pr-2">{h.name}</span>
+              <span className="text-xs text-gray-800 font-medium pr-1 leading-tight break-words">{h.name}</span>
               {dates.map((d, i) => {
                 const isDone = done.has(d)
                 return (
                   <div key={i} className="flex items-center justify-center">
-                    <div className="w-6 h-6 rounded-full transition-colors"
+                    <div className="w-[30px] h-[30px] rounded-full transition-colors"
                       style={{
                         backgroundColor: isDone ? filledColor : '#F3F4F6',
                         boxShadow: isDone ? `0 1px 3px ${filledColor}66` : 'none',

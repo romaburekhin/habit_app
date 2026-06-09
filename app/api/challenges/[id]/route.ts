@@ -26,9 +26,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (!inviterHabit) return NextResponse.json({ error: 'Original habit not found' }, { status: 404 })
 
     const created_at = new Date().toISOString().slice(0, 10)
+    const maxOrder = (db.prepare('SELECT MAX(sort_order) as m FROM habits WHERE user_id = ?').get(session.user.id) as { m: number | null }).m ?? 0
     const result = db.prepare(
-      'INSERT INTO habits (user_id, name, goal, color, created_at) VALUES (?, ?, ?, ?, ?)'
-    ).run(session.user.id, inviterHabit.name, inviterHabit.goal, inviterHabit.color ?? null, created_at)
+      'INSERT INTO habits (user_id, name, goal, color, created_at, sort_order) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(session.user.id, inviterHabit.name, inviterHabit.goal, inviterHabit.color ?? null, created_at, maxOrder + 1)
 
     db.prepare(`
       UPDATE challenges SET status = 'accepted', invitee_id = ?, invitee_habit_id = ? WHERE id = ?
@@ -43,6 +44,33 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const isInviter = challenge.inviter_id === session.user.id
     if (!isInvitee && !isInviter) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     db.prepare(`UPDATE challenges SET status = 'declined' WHERE id = ?`).run(Number(id))
+  } else if (action === 'propose_update') {
+    const isParticipant = challenge.inviter_id === session.user.id || challenge.invitee_id === session.user.id
+    if (!isParticipant) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    const { name, description, periodEnd, startDate, days } = body
+    db.prepare('UPDATE challenges SET update_proposal = ?, update_proposed_by = ? WHERE id = ?')
+      .run(JSON.stringify({ name, description, periodEnd, startDate: startDate ?? null, days }), session.user.id, Number(id))
+    // Notify the other party
+    const proposerProfile = db.prepare('SELECT name, email FROM profiles WHERE user_id = ?').get(session.user.id) as { name: string | null; email: string } | undefined
+    const proposerName = proposerProfile?.name?.split(' ')[0] ?? proposerProfile?.email ?? 'Someone'
+    const otherId = challenge.inviter_id === session.user.id ? challenge.invitee_id as string | null : challenge.inviter_id as string
+    if (otherId) sendPush(otherId, 'Challenge Updated', `${proposerName} proposed changes to the challenge`).catch(() => {})
+
+  } else if (action === 'accept_update') {
+    const isParticipant = challenge.inviter_id === session.user.id || challenge.invitee_id === session.user.id
+    if (!isParticipant) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    if (!challenge.update_proposal) return NextResponse.json({ error: 'No pending update' }, { status: 400 })
+    const proposal = JSON.parse(challenge.update_proposal as string) as { name: string; description: string; periodEnd: string; startDate: string | null; days: number }
+    db.prepare('UPDATE challenges SET description = ?, period_end = ?, start_date = ?, update_proposal = NULL, update_proposed_by = NULL WHERE id = ?')
+      .run(proposal.description ?? null, proposal.periodEnd, proposal.startDate ?? null, Number(id))
+    if (challenge.inviter_habit_id) db.prepare('UPDATE habits SET name = ?, goal = ? WHERE id = ?').run(proposal.name, proposal.days, challenge.inviter_habit_id)
+    if (challenge.invitee_habit_id) db.prepare('UPDATE habits SET name = ?, goal = ? WHERE id = ?').run(proposal.name, proposal.days, challenge.invitee_habit_id)
+
+  } else if (action === 'decline_update') {
+    const isParticipant = challenge.inviter_id === session.user.id || challenge.invitee_id === session.user.id
+    if (!isParticipant) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    db.prepare('UPDATE challenges SET update_proposal = NULL, update_proposed_by = NULL WHERE id = ?').run(Number(id))
+
   } else {
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   }
@@ -66,9 +94,12 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const isInvitee = challenge.invitee_id === session.user.id || challenge.invitee_email === session.user.email
   if (!isInviter && !isInvitee) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
 
-  // Delete the invitee's auto-copied habit if the challenge was accepted
+  // Delete habits: invitee's copy always; inviter's habit if they're the one leaving (it was auto-created)
   if (challenge.status === 'accepted' && challenge.invitee_habit_id) {
     db.prepare('DELETE FROM habits WHERE id = ?').run(challenge.invitee_habit_id)
+  }
+  if (isInviter && challenge.inviter_habit_id) {
+    db.prepare('DELETE FROM habits WHERE id = ?').run(challenge.inviter_habit_id)
   }
 
   db.prepare('DELETE FROM challenges WHERE id = ?').run(Number(id))

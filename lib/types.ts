@@ -38,4 +38,9 @@ export interface ChallengeView {
   their_habit: ChallengeHabit | null
   their_email: string
   their_name: string | null
+  description: string | null
+  period_end: string | null
+  start_date: string | null
+  update_proposal: { name: string; description: string; periodEnd: string; startDate: string | null; days: number } | null
+  i_proposed_update: boolean
 }

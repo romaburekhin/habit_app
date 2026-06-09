@@ -43,13 +43,14 @@ const DEFAULT_COLOR = '#E5E7EB'
 
 interface Props {
   habit: Habit
+  isInChallenge?: boolean
   onClose: () => void
   onUpdated: (habit: Habit) => void
   onDayToggled: (habit: Habit, date: string, added: boolean) => void
   onDeleted: (id: number) => void
 }
 
-export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled, onDeleted }: Props) {
+export default function EditHabitModal({ habit, isInChallenge, onClose, onUpdated, onDayToggled, onDeleted }: Props) {
   const [name, setName] = useState(habit.name)
   const [color, setColor] = useState<string | null>(habit.color)
   const [goalMode, setGoalMode] = useState<GoalMode>('fixed')
@@ -145,7 +146,7 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
     if (!name.trim() || isGoalInvalid) return
     setSubmitting(true)
     try {
-      const updated = await updateHabit(habit.id, name, computedGoal, color)
+      const updated = await updateHabit(habit.id, name, isInChallenge ? habit.goal : computedGoal, color)
       onUpdated(updated)
       onClose()
     } finally {
@@ -262,58 +263,60 @@ export default function EditHabitModal({ habit, onClose, onUpdated, onDayToggled
               </button>
             </div>
           </div>
-          <div className="space-y-2">
-            <label className="text-xs text-gray-400">Goal</label>
-            <div className="flex gap-1 bg-black/8 rounded-lg p-1">
-              {GOAL_MODES.map(m => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setGoalMode(m.id)}
-                  className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-all ${
-                    goalMode === m.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
+          {!isInChallenge && (
+            <div className="space-y-2">
+              <label className="text-xs text-gray-400">Goal</label>
+              <div className="flex gap-1 bg-black/8 rounded-lg p-1">
+                {GOAL_MODES.map(m => (
+                  <button
+                    key={m.id}
+                    type="button"
+                    onClick={() => setGoalMode(m.id)}
+                    className={`flex-1 text-xs py-1.5 rounded-md font-medium transition-all ${
+                      goalMode === m.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
+              </div>
+              {goalMode === 'fixed' ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={3650}
+                      value={fixedGoal}
+                      onChange={e => setFixedGoal(e.target.value)}
+                      className="w-20 rounded-lg px-3 py-2 text-sm outline-none border border-black/10 bg-white/70 text-gray-900 placeholder-gray-400 focus:border-black/20"
+                    />
+                    <span className="text-sm text-gray-500">days</span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    <span className="font-medium text-gray-700">{fixedGoal || '0'} days</span> need to complete the goal
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={7}
+                      value={daysPerWeek}
+                      onChange={e => setDaysPerWeek(e.target.value)}
+                      className="w-20 rounded-lg px-3 py-2 text-sm outline-none border border-black/10 bg-white/70 text-gray-900 placeholder-gray-400 focus:border-black/20"
+                    />
+                    <span className="text-sm text-gray-500">days per week</span>
+                  </div>
+                  <p className="text-xs text-gray-400">
+                    <span className="font-medium text-gray-700">{computedGoal} days</span> need to complete the goal
+                  </p>
+                </div>
+              )}
             </div>
-            {goalMode === 'fixed' ? (
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    max={3650}
-                    value={fixedGoal}
-                    onChange={e => setFixedGoal(e.target.value)}
-                    className="w-20 rounded-lg px-3 py-2 text-sm outline-none border border-black/10 bg-white/70 text-gray-900 placeholder-gray-400 focus:border-black/20"
-                  />
-                  <span className="text-sm text-gray-500">days</span>
-                </div>
-                <p className="text-xs text-gray-400">
-                  <span className="font-medium text-gray-700">{fixedGoal || '0'} days</span> need to complete the goal
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="number"
-                    min={1}
-                    max={7}
-                    value={daysPerWeek}
-                    onChange={e => setDaysPerWeek(e.target.value)}
-                    className="w-20 rounded-lg px-3 py-2 text-sm outline-none border border-black/10 bg-white/70 text-gray-900 placeholder-gray-400 focus:border-black/20"
-                  />
-                  <span className="text-sm text-gray-500">days per week</span>
-                </div>
-                <p className="text-xs text-gray-400">
-                  <span className="font-medium text-gray-700">{computedGoal} days</span> need to complete the goal
-                </p>
-              </div>
-            )}
-          </div>
+          )}
           <div className="flex items-center justify-between pt-2">
             <button
               type="button"

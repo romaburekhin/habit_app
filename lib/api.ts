@@ -86,11 +86,19 @@ export async function fetchChallenges(): Promise<ChallengeView[]> {
   return res.json()
 }
 
-export async function createChallenge(habit_id: number, invitee_email: string): Promise<void> {
+export async function createChallenge(params: {
+  name: string
+  description: string
+  color: string
+  periodEnd: string
+  startDate?: string
+  days: number
+  inviteeEmail: string
+}): Promise<void> {
   const res = await fetch('/api/challenges', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ habit_id, invitee_email }),
+    body: JSON.stringify(params),
   })
   if (!res.ok) throw new Error('Failed to create challenge')
 }
@@ -102,6 +110,24 @@ export async function respondToChallenge(id: number, action: 'accept' | 'decline
     body: JSON.stringify({ action }),
   })
   if (!res.ok) throw new Error('Failed to respond to challenge')
+}
+
+export async function proposeUpdate(id: number, params: { name: string; description: string; periodEnd: string; startDate: string | null; days: number }): Promise<void> {
+  const res = await fetch(`/api/challenges/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'propose_update', ...params }),
+  })
+  if (!res.ok) throw new Error('Failed to propose update')
+}
+
+export async function respondToUpdate(id: number, action: 'accept_update' | 'decline_update'): Promise<void> {
+  const res = await fetch(`/api/challenges/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action }),
+  })
+  if (!res.ok) throw new Error('Failed to respond to update')
 }
 
 export async function deleteChallenge(id: number): Promise<void> {

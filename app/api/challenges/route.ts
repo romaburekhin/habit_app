@@ -30,6 +30,11 @@ function buildView(row: Record<string, unknown>, userId: string): ChallengeView 
     } : null,
     their_email: isInviter ? (row.invitee_email as string) : (row.inviter_email as string ?? ''),
     their_name: isInviter ? (row.invitee_name as string | null) : (row.inviter_name as string | null),
+    description: row.description as string | null,
+    period_end: row.period_end as string | null,
+    start_date: row.start_date as string | null,
+    update_proposal: row.update_proposal ? JSON.parse(row.update_proposal as string) : null,
+    i_proposed_update: !!row.update_proposal && row.update_proposed_by === userId,
   }
 }
 
@@ -43,6 +48,8 @@ export async function GET() {
     SELECT
       c.id, c.inviter_id, c.invitee_email, c.invitee_id,
       c.inviter_habit_id, c.invitee_habit_id, c.status, c.created_at,
+      c.description, c.period_end, c.start_date,
+      c.update_proposal, c.update_proposed_by,
       ih.id AS ih_id, ih.name AS ih_name, ih.color AS ih_color,
         ih.goal AS ih_goal, ih.completed_days AS ih_completed,
       eh.id AS eh_id, eh.name AS eh_name, eh.color AS eh_color,
@@ -68,34 +75,42 @@ export async function POST(request: Request) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { habit_id, invitee_email } = body
-  if (!habit_id || !invitee_email) {
-    return NextResponse.json({ error: 'habit_id and invitee_email required' }, { status: 400 })
+  const { name, description, color, periodEnd, startDate, days, inviteeEmail } = body
+  if (!name?.trim() || !inviteeEmail || !periodEnd || !days) {
+    return NextResponse.json({ error: 'name, inviteeEmail, periodEnd and days are required' }, { status: 400 })
   }
 
   const db = getDb()
-
-  // Verify habit belongs to inviter
-  const habit = db.prepare('SELECT id FROM habits WHERE id = ? AND user_id = ?').get(habit_id, session.user.id)
-  if (!habit) return NextResponse.json({ error: 'Habit not found' }, { status: 404 })
-
-  // Look up invitee
-  const invitee = db.prepare('SELECT user_id FROM profiles WHERE lower(email) = ?').get(invitee_email.toLowerCase()) as { user_id: string } | undefined
-
   const created_at = new Date().toISOString().slice(0, 10)
-  const result = db.prepare(`
-    INSERT INTO challenges (inviter_id, invitee_email, invitee_id, inviter_habit_id, status, created_at)
-    VALUES (?, ?, ?, ?, 'pending', ?)
-  `).run(session.user.id, invitee_email.toLowerCase(), invitee?.user_id ?? null, habit_id, created_at)
 
-  const created = db.prepare('SELECT * FROM challenges WHERE id = ?').get(result.lastInsertRowid)
+  try {
+    // Create the inviter's habit inline
+    const maxOrder = (db.prepare('SELECT MAX(sort_order) as m FROM habits WHERE user_id = ?').get(session.user.id) as { m: number | null }).m ?? 0
+    const habitResult = db.prepare(`
+      INSERT INTO habits (user_id, name, goal, completed_days, color, created_at, sort_order)
+      VALUES (?, ?, ?, 0, ?, ?, ?)
+    `).run(session.user.id, name.trim(), days, color ?? null, created_at, maxOrder + 1)
+    const habit_id = habitResult.lastInsertRowid
 
-  // Notify invitee if they have an account
-  if (invitee?.user_id) {
-    const inviterProfile = db.prepare('SELECT name, email FROM profiles WHERE user_id = ?').get(session.user.id) as { name: string | null; email: string } | undefined
-    const inviterName = inviterProfile?.name?.split(' ')[0] ?? inviterProfile?.email ?? 'Someone'
-    sendPush(invitee.user_id, 'New Challenge', `${inviterName} invited you to a Challenge`).catch(() => {})
+    // Look up invitee
+    const invitee = db.prepare('SELECT user_id FROM profiles WHERE lower(email) = ?').get(inviteeEmail.toLowerCase()) as { user_id: string } | undefined
+
+    const result = db.prepare(`
+      INSERT INTO challenges (inviter_id, invitee_email, invitee_id, inviter_habit_id, status, created_at, description, period_end, start_date)
+      VALUES (?, ?, ?, ?, 'pending', ?, ?, ?, ?)
+    `).run(session.user.id, inviteeEmail.toLowerCase(), invitee?.user_id ?? null, habit_id, created_at, description?.trim() || null, periodEnd, startDate ?? null)
+
+    const created = db.prepare('SELECT * FROM challenges WHERE id = ?').get(result.lastInsertRowid)
+
+    if (invitee?.user_id) {
+      const inviterProfile = db.prepare('SELECT name, email FROM profiles WHERE user_id = ?').get(session.user.id) as { name: string | null; email: string } | undefined
+      const inviterName = inviterProfile?.name?.split(' ')[0] ?? inviterProfile?.email ?? 'Someone'
+      sendPush(invitee.user_id, 'New Challenge', `${inviterName} challenged you: ${name.trim()}`).catch(() => {})
+    }
+
+    return NextResponse.json(created, { status: 201 })
+  } catch (err) {
+    console.error('[POST /api/challenges]', err)
+    return NextResponse.json({ error: String(err) }, { status: 500 })
   }
-
-  return NextResponse.json(created, { status: 201 })
 }

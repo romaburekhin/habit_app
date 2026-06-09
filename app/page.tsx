@@ -475,16 +475,18 @@ export default function Home() {
 
       {showCommonModal && (
         <CommonGoalModal
-          habits={habits}
-          sharedHabitIds={sharedHabitIds}
           onClose={() => setShowCommonModal(false)}
-          onSent={() => fetchChallenges().then(setChallenges)}
+          onSent={() => {
+            fetchChallenges().then(setChallenges)
+            fetchInit().then(({ habits }) => setHabits(habits))
+          }}
         />
       )}
 
       {editingHabit && (
         <EditHabitModal
           habit={editingHabit}
+          isInChallenge={sharedHabitIds.has(editingHabit.id)}
           onClose={() => {
             setEditingHabit(null)
             const { from, to } = getWeekBounds()
